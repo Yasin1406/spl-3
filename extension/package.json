@@ -1,0 +1,11 @@
+{
+  "name": "bangla-web-accessibility-assistant-extension",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "Chrome extension for Bangla web accessibility assistance.",
+  "scripts": {
+    "build": "node scripts/build-extension.js",
+    "check": "node --check src/content/banglaDictionary.js && node --check src/content/domTranslator.js && node --check src/content/contentScript.js && node --check scripts/build-extension.js"
+  }
+}
