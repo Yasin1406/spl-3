@@ -130,28 +130,90 @@
   }
 
   function translateText(text) {
-    const dictionary = globalScope.BAA_DICTIONARY || { phrases: {}, words: {} };
-    let translated = text;
+    const dictionary = globalScope.BAA_DICTIONARY || {};
+    const leadingWhitespace = text.match(/^\s*/)[0];
+    const trailingWhitespace = text.match(/\s*$/)[0];
+    const coreText = text.trim();
 
-    for (const [english, bangla] of Object.entries(dictionary.phrases)) {
-      translated = replaceCaseInsensitivePhrase(translated, english, bangla);
+    if (!coreText) return text;
+
+    const translatedCore =
+      translateExactPhrase(coreText, dictionary) ||
+      translatePattern(coreText, dictionary) ||
+      translateShortText(coreText, dictionary);
+
+    if (!translatedCore) {
+      return text;
     }
 
-    translated = translated.replace(/\b[A-Za-z][A-Za-z'-]*\b/g, (word) => {
-      const lowerWord = word.toLowerCase();
-      return dictionary.words[lowerWord] || word;
+    return `${leadingWhitespace}${translatedCore}${trailingWhitespace}`;
+  }
+
+  function translateExactPhrase(text, dictionary) {
+    const normalized = normalizeKey(text);
+    return dictionary.exactPhrases?.[normalized] || "";
+  }
+
+  function translatePattern(text, dictionary) {
+    return translateAuthPattern(text, dictionary) ||
+      translateFieldOrPattern(text, dictionary);
+  }
+
+  function translateAuthPattern(text, dictionary) {
+    const match = text.match(/^(log|sign)\s+in\s+to\s+(.+?)[.!?]?$/i);
+    if (!match) return "";
+
+    const action = match[1].toLowerCase();
+    const brand = translateBrand(match[2], dictionary, "locative");
+    const actionText = action === "sign"
+      ? "\u09b8\u09be\u0987\u09a8 \u0987\u09a8 \u0995\u09b0\u09c1\u09a8"
+      : "\u09b2\u0997 \u0987\u09a8 \u0995\u09b0\u09c1\u09a8";
+
+    return `${brand} ${actionText}`;
+  }
+
+  function translateFieldOrPattern(text, dictionary) {
+    const match = text.match(/^(.+?)\s+or\s+(.+?)[.!?]?$/i);
+    if (!match) return "";
+
+    const firstField = translateField(match[1], dictionary);
+    const secondField = translateField(match[2], dictionary);
+
+    if (!firstField || !secondField) return "";
+
+    return `${firstField} \u09ac\u09be ${secondField}`;
+  }
+
+  function translateShortText(text, dictionary) {
+    const words = text.match(/[A-Za-z][A-Za-z'-]*/g) || [];
+    if (words.length === 0 || words.length > 3) return "";
+
+    const translated = text.replace(/\b[A-Za-z][A-Za-z'-]*\b/g, (word) => {
+      return dictionary.shortWords?.[word.toLowerCase()] || word;
     });
 
-    return translated;
+    return translated !== text ? translated : "";
   }
 
-  function replaceCaseInsensitivePhrase(text, phrase, replacement) {
-    const pattern = new RegExp(escapeRegExp(phrase), "gi");
-    return text.replace(pattern, replacement);
+  function translateBrand(value, dictionary, form) {
+    const normalized = normalizeKey(value);
+    const brand = dictionary.brands?.[normalized];
+
+    if (brand?.[form]) return brand[form];
+    if (brand?.name) return `${brand.name}-\u098f`;
+    return `${value.trim()}-\u098f`;
   }
 
-  function escapeRegExp(value) {
-    return value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+  function translateField(value, dictionary) {
+    return dictionary.fields?.[normalizeKey(value)] || "";
+  }
+
+  function normalizeKey(value) {
+    return value
+      .replace(/[.!?]+$/g, "")
+      .replace(/\s+/g, " ")
+      .trim()
+      .toLowerCase();
   }
 
   function toDatasetSuffix(attributeName) {

@@ -11,6 +11,6 @@ Planned content-script modules:
 
 Current files:
 
-- `banglaDictionary.js`: generic English-to-Bangla dictionary.
-- `domTranslator.js`: DOM text and attribute translation helpers.
+- `banglaDictionary.js`: exact phrase, brand, field, and short-label dictionaries.
+- `domTranslator.js`: phrase-first, pattern-based DOM text and attribute translation helpers.
 - `contentScript.js`: starts/stops translation and observes live DOM changes while enabled.

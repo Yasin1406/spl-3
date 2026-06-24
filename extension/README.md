@@ -17,8 +17,9 @@ The extension currently includes a simple content-script prototype that:
 
 - Captures visible live DOM text.
 - Watches newly added DOM nodes with `MutationObserver`.
-- Uses a small generic English-to-Bangla dictionary.
-- Replaces matching visible text and selected accessibility attributes with Bangla text.
+- Uses phrase-first and pattern-based English-to-Bangla translation rules.
+- Falls back to short word translation only for compact UI labels.
+- Avoids partially translating unknown long sentences into broken mixed-language text.
 - Provides a popup button to start and stop translation.
 
 ## Build
