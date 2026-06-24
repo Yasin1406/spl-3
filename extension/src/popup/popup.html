@@ -1,0 +1,25 @@
+<!doctype html>
+<html lang="bn">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Bangla Accessibility Assistant</title>
+    <link rel="stylesheet" href="popup.css" />
+  </head>
+  <body>
+    <main class="popup">
+      <h1>বাংলা অ্যাক্সেসিবিলিটি সহকারী</h1>
+
+      <section class="control-panel" aria-labelledby="translation-heading">
+        <div>
+          <h2 id="translation-heading">DOM Translation</h2>
+          <p id="statusText">Status loading</p>
+        </div>
+
+        <button id="toggleButton" type="button">Start</button>
+      </section>
+    </main>
+
+    <script src="popup.js"></script>
+  </body>
+</html>

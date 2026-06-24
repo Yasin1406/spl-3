@@ -24,6 +24,12 @@
     translateAttributes(root);
   }
 
+  function restorePage(root = document.body) {
+    if (!root) return;
+    restoreTextNodes(root);
+    restoreAttributes(root);
+  }
+
   function translateTextNodes(root) {
     const walker = document.createTreeWalker(
       root,
@@ -61,6 +67,30 @@
     }
   }
 
+  function restoreTextNodes(root) {
+    const walker = document.createTreeWalker(
+      root,
+      NodeFilter.SHOW_TEXT,
+      {
+        acceptNode(node) {
+          if (!node.__baaTranslated) return NodeFilter.FILTER_REJECT;
+          return NodeFilter.FILTER_ACCEPT;
+        }
+      }
+    );
+
+    const textNodes = [];
+    while (walker.nextNode()) {
+      textNodes.push(walker.currentNode);
+    }
+
+    for (const node of textNodes) {
+      node.nodeValue = node.__baaOriginalText;
+      node.__baaTranslated = false;
+      node.__baaOriginalText = "";
+    }
+  }
+
   function translateAttributes(root) {
     const elements = root.matches ? [root, ...root.querySelectorAll("*")] : [...root.querySelectorAll("*")];
 
@@ -76,6 +106,24 @@
           element.setAttribute(`data-baa-original-${attributeName}`, value);
           element.setAttribute(attributeName, translatedValue);
           element.dataset[`baa${toDatasetSuffix(attributeName)}Translated`] = "true";
+        }
+      }
+    }
+  }
+
+  function restoreAttributes(root) {
+    const elements = root.matches ? [root, ...root.querySelectorAll("*")] : [...root.querySelectorAll("*")];
+
+    for (const element of elements) {
+      for (const attributeName of TRANSLATABLE_ATTRIBUTES) {
+        const originalAttributeName = `data-baa-original-${attributeName}`;
+        const originalValue = element.getAttribute(originalAttributeName);
+        const datasetKey = `baa${toDatasetSuffix(attributeName)}Translated`;
+
+        if (originalValue !== null) {
+          element.setAttribute(attributeName, originalValue);
+          element.removeAttribute(originalAttributeName);
+          delete element.dataset[datasetKey];
         }
       }
     }
@@ -114,6 +162,7 @@
   }
 
   globalScope.BAA_DOM_TRANSLATOR = {
+    restorePage,
     translatePage,
     translateText
   };

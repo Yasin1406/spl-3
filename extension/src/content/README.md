@@ -13,4 +13,4 @@ Current files:
 
 - `banglaDictionary.js`: generic English-to-Bangla dictionary.
 - `domTranslator.js`: DOM text and attribute translation helpers.
-- `contentScript.js`: runs initial translation and observes live DOM changes.
+- `contentScript.js`: starts/stops translation and observes live DOM changes while enabled.

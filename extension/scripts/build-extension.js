@@ -7,6 +7,9 @@ const distDir = join(extensionRoot, "dist");
 
 const filesToCopy = [
   ["public/manifest.json", "manifest.json"],
+  ["src/popup/popup.html", "popup/popup.html"],
+  ["src/popup/popup.css", "popup/popup.css"],
+  ["src/popup/popup.js", "popup/popup.js"],
   ["src/content/banglaDictionary.js", "content/banglaDictionary.js"],
   ["src/content/domTranslator.js", "content/domTranslator.js"],
   ["src/content/contentScript.js", "content/contentScript.js"]

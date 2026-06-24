@@ -19,6 +19,7 @@ The extension currently includes a simple content-script prototype that:
 - Watches newly added DOM nodes with `MutationObserver`.
 - Uses a small generic English-to-Bangla dictionary.
 - Replaces matching visible text and selected accessibility attributes with Bangla text.
+- Provides a popup button to start and stop translation.
 
 ## Build
 

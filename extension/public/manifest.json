@@ -3,7 +3,11 @@
   "name": "Bangla Web Accessibility Assistant",
   "version": "0.1.0",
   "description": "Captures live page DOM text and injects generic dictionary-based Bangla translations.",
-  "permissions": [],
+  "permissions": ["storage", "activeTab"],
+  "action": {
+    "default_title": "Bangla Accessibility Assistant",
+    "default_popup": "popup/popup.html"
+  },
   "content_scripts": [
     {
       "matches": ["<all_urls>"],
