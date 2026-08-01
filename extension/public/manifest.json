@@ -4,7 +4,7 @@
   "version": "0.1.0",
   "description": "Detects selected accessibility issues and applies reversible Bangla-friendly assistance.",
   "permissions": ["storage", "activeTab"],
-  "host_permissions": ["http://127.0.0.1/*", "http://localhost/*"],
+  "host_permissions": ["<all_urls>"],
   "background": {
     "service_worker": "background/serviceWorker.js"
   },
@@ -24,6 +24,8 @@
         "content/adaptationRegistry.js",
         "content/liveRegion.js",
         "content/scanner.js",
+        "content/keyboardRepair.js",
+        "content/imageAssistant.js",
         "content/formAssistant.js",
         "content/contentScript.js"
       ],

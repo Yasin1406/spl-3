@@ -27,6 +27,10 @@
       });
     }
 
+    for (const element of collect(root, "[role='button']:not([tabindex]), img[onclick]:not([tabindex]), div[onclick]:not([tabindex]), span[onclick]:not([tabindex])")) {
+      issues.push(issue(element, reasons.KEYBOARD_ACCESS_MISSING, "error"));
+    }
+
     for (const element of inventory.formControls) {
       if (!core.accessibleNameSource(element).name) {
         issues.push(issue(element, reasons.FORM_LABEL_MISSING, "error"));

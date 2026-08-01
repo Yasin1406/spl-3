@@ -39,3 +39,5 @@ database/       Database schema and migrations
 docs/           Project documentation and diagrams
 tests/          Future test cases and evaluation assets
 ```
+
+Current assistance includes reversible keyboard repair for high-confidence pseudo-buttons, configurable concise/balanced/detailed Bangla translation, and explicit image OCR/description commands. Focus or hover an image and press `Alt+Shift+O` for OCR or `Alt+Shift+D` for a visual description. An image is sent to the configured vision provider only after that action.

@@ -93,3 +93,5 @@ npm.cmd test
 ```
 
 The translation endpoint accepts at most 20 items and 500 characters per item. It does not accept page HTML or form values.
+
+Translation requests may include `verbosity` as `concise`, `balanced`, or `detailed`. Image assistance uses `POST /api/v1/assist/image-analysis`; only providers with a configured `GROQ_VISION_MODEL`, `MISTRAL_VISION_MODEL`, or `CEREBRAS_VISION_MODEL` are tried. The configured model must support image input.

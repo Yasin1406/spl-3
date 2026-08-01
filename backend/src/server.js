@@ -1,5 +1,6 @@
 import { createApp } from "./app.js";
 import { createProviderTranslationService, providersFromEnvironment } from "./services/providerTranslation.js";
+import { createProviderImageAnalysisService, visionProvidersFromEnvironment } from "./services/providerImageAnalysis.js";
 
 const providers = providersFromEnvironment(process.env);
 if (providers.length === 0) {
@@ -9,11 +10,14 @@ if (providers.length === 0) {
 
 const port = Number(process.env.PORT || 3000);
 const translateBatch = createProviderTranslationService({ providers });
+const visionProviders = visionProvidersFromEnvironment(process.env, providers);
+const analyzeImage = createProviderImageAnalysisService({ providers: visionProviders });
 const app = createApp({
   translateBatch,
+  analyzeImage,
   allowedOrigin: process.env.ALLOWED_EXTENSION_ORIGIN || "*"
 });
 
 app.listen(port, "127.0.0.1", () => {
-  console.log(`Bangla accessibility backend listening on http://127.0.0.1:${port}; providers: ${providers.map((provider) => provider.name).join(" -> ")}`);
+  console.log(`Bangla accessibility backend listening on http://127.0.0.1:${port}; providers: ${providers.map((provider) => provider.name).join(" -> ")}; vision: ${visionProviders.map((provider) => provider.name).join(" -> ") || "not configured"}`);
 });

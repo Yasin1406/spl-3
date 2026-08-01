@@ -21,6 +21,8 @@ const filesToCopy = [
   ["src/content/adaptationRegistry.js", "content/adaptationRegistry.js"],
   ["src/content/liveRegion.js", "content/liveRegion.js"],
   ["src/content/scanner.js", "content/scanner.js"],
+  ["src/content/keyboardRepair.js", "content/keyboardRepair.js"],
+  ["src/content/imageAssistant.js", "content/imageAssistant.js"],
   ["src/content/formAssistant.js", "content/formAssistant.js"],
   ["src/content/contentScript.js", "content/contentScript.js"]
 ];

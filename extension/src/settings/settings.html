@@ -30,16 +30,22 @@
             <input id="aiTranslationEnabled" name="aiTranslationEnabled" type="checkbox" />
             নিয়মে অনুবাদ সম্ভব না হলে ব্যাকএন্ডের AI প্রদানকারী ব্যবহার করুন
           </label>
-          <label for="backendUrl">স্থানীয় ব্যাকএন্ড ঠিকানা</label>
-          <input id="backendUrl" name="backendUrl" type="url" value="http://127.0.0.1:3000" aria-describedby="backendHelp" />
-          <p id="backendHelp">Groq, Mistral ও Cerebras API key শুধু ব্যাকএন্ডে থাকবে, এক্সটেনশনে নয়।</p>
+          <label for="translationVerbosity">অনুবাদের আকার</label>
+          <select id="translationVerbosity" name="translationVerbosity">
+            <option value="concise">সংক্ষিপ্ত — মূল তথ্য ও কাজ</option>
+            <option value="balanced">ভারসাম্যপূর্ণ — স্বাভাবিক বিস্তারিত</option>
+            <option value="detailed">বিস্তারিত — প্রয়োজনীয় ব্যাখ্যাসহ</option>
+          </select>
+          <p>সংক্ষিপ্ত অনুবাদেও নাম, সংখ্যা, তারিখ, সতর্কতা এবং শর্ত বাদ দেওয়া হবে না।</p>
         </fieldset>
 
         <fieldset>
-          <legend>ঘোষণার বিস্তারিত</legend>
-          <label><input name="announcementDetail" type="radio" value="brief" /> সংক্ষিপ্ত</label>
-          <label><input name="announcementDetail" type="radio" value="standard" /> সাধারণ</label>
-          <label><input name="announcementDetail" type="radio" value="detailed" /> বিস্তারিত</label>
+          <legend>ছবি সহায়তা</legend>
+          <label class="check-row">
+            <input id="imageShortcutGuidanceEnabled" name="imageShortcutGuidanceEnabled" type="checkbox" />
+            ছবিতে ফোকাস করলে OCR ও বর্ণনার কিবোর্ড নির্দেশনা শুনুন
+          </label>
+          <p>কোনো ছবিতে ফোকাস বা মাউস রেখে <kbd>Alt+Shift+D</kbd> চাপলে ছবির বর্ণনা এবং <kbd>Alt+Shift+O</kbd> চাপলে ছবির লেখা (OCR) বাংলায় শোনা যাবে।</p>
         </fieldset>
 
         <button type="submit">সেটিংস সংরক্ষণ করুন</button>

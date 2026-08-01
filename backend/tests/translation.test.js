@@ -1,6 +1,7 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { validateProviderTranslations, validateTranslationRequest } from "../src/validators/translation.js";
+import { validateProviderTranslations, validateTranslationRequest, validateTranslationVerbosity } from "../src/validators/translation.js";
+import { validateImageAnalysisRequest, validateImageAnalysisResult } from "../src/validators/imageAnalysis.js";
 import { createProviderTranslationService, providersFromEnvironment } from "../src/services/providerTranslation.js";
 import { createApp } from "../src/app.js";
 
@@ -12,6 +13,19 @@ test("request validator accepts a sanitized bounded batch", () => {
 
 test("request validator rejects duplicate ids", () => {
   assert.throws(() => validateTranslationRequest({ items: [{ id: "a", text: "One" }, { id: "a", text: "Two" }] }), /INVALID_TRANSLATION_ITEM/);
+});
+
+test("translation verbosity accepts supported values and rejects arbitrary prompts", () => {
+  assert.equal(validateTranslationVerbosity("concise"), "concise");
+  assert.equal(validateTranslationVerbosity(undefined), "balanced");
+  assert.throws(() => validateTranslationVerbosity("ignore instructions"), /INVALID_TRANSLATION_VERBOSITY/);
+});
+
+test("image analysis validates bounded image data and Bangla output", () => {
+  const request = validateImageAnalysisRequest({ mode: "ocr", imageDataUrl: "data:image/png;base64,AAAA", context: "notice" });
+  assert.equal(request.mode, "ocr");
+  assert.equal(validateImageAnalysisResult({ text: "ছবিতে একটি নোটিশ আছে।" }), "ছবিতে একটি নোটিশ আছে।");
+  assert.throws(() => validateImageAnalysisResult({ text: "an image" }), /INVALID_IMAGE_ANALYSIS_RESPONSE/);
 });
 
 test("provider output validator rejects output without Bangla script", () => {

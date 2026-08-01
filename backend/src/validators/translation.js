@@ -17,6 +17,12 @@ export function validateTranslationRequest(body) {
   });
 }
 
+export function validateTranslationVerbosity(value) {
+  const verbosity = value === undefined ? "balanced" : String(value).trim().toLowerCase();
+  if (!["concise", "balanced", "detailed"].includes(verbosity)) throw requestError("INVALID_TRANSLATION_VERBOSITY");
+  return verbosity;
+}
+
 export function validateProviderTranslations(payload, sourceItems) {
   if (!payload || !Array.isArray(payload.translations)) throw serviceError("INVALID_AI_RESPONSE");
   const sourceById = new Map(sourceItems.map((item) => [item.id, item]));

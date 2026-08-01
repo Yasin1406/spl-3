@@ -39,12 +39,28 @@
       return record;
     }
 
+    function applyEventListener({ element, event, listener, reasonCode, ruleScore = 1 }) {
+      if (!element || !event || typeof listener !== "function") return null;
+      const id = `baa-adaptation-${++sequence}`;
+      element.addEventListener(event, listener);
+      const record = Object.freeze({
+        id, type: "event-listener", reasonCode, ruleScore, validationStatus: "validated",
+        rollback() {
+          element.removeEventListener(event, listener);
+          adaptations.delete(id);
+        }
+      });
+      adaptations.set(id, record);
+      return record;
+    }
+
     function rollbackAll() {
       for (const record of [...adaptations.values()].reverse()) record.rollback();
     }
 
     return Object.freeze({
       applyAttribute,
+      applyEventListener,
       get size() { return adaptations.size; },
       rollbackAll
     });

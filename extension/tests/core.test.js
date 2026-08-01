@@ -61,6 +61,54 @@ test("adaptation registry supports multiple attributes on one element", async ()
   assert.equal(element.getAttribute("aria-describedby"), null);
 });
 
+test("keyboard repair adds reversible focus and keyboard activation to a pseudo-button", async () => {
+  const reasons = await loadScript("src/content/reasonCodes.js");
+  const registrySandbox = await loadScript("src/content/adaptationRegistry.js");
+  const registry = registrySandbox.BAA_ADAPTATION_REGISTRY.createRegistry();
+  const listeners = new Map();
+  let clicks = 0;
+  const element = fakeElement({ role: "button" });
+  element.matches = (selector) => selector.includes("[role='button']");
+  element.addEventListener = (event, listener) => listeners.set(event, listener);
+  element.removeEventListener = (event) => listeners.delete(event);
+  element.click = () => { clicks += 1; };
+  const keyboardSandbox = await loadScript("src/content/keyboardRepair.js", { BAA_REASON_CODES: reasons.BAA_REASON_CODES });
+  assert.equal(keyboardSandbox.BAA_KEYBOARD_REPAIR.repair({ matches: () => false, querySelectorAll: () => [element] }, registry), 1);
+  assert.equal(element.getAttribute("tabindex"), "0");
+  listeners.get("keydown")({ key: "Enter", preventDefault() {} });
+  assert.equal(clicks, 1);
+  registry.rollbackAll();
+  assert.equal(element.getAttribute("tabindex"), null);
+  assert.equal(listeners.size, 0);
+});
+
+test("image assistance adds reversible focus only to meaningful standalone images", async () => {
+  const reasons = await loadScript("src/content/reasonCodes.js");
+  const registrySandbox = await loadScript("src/content/adaptationRegistry.js");
+  const registry = registrySandbox.BAA_ADAPTATION_REGISTRY.createRegistry();
+  const assistant = await loadScript("src/content/imageAssistant.js");
+  const meaningful = fakeElement({ alt: "Campus map" });
+  meaningful.tagName = "IMG";
+  meaningful.hidden = false;
+  meaningful.closest = () => null;
+  const decorative = fakeElement({ alt: "" });
+  decorative.tagName = "IMG";
+  decorative.hidden = false;
+  decorative.closest = () => null;
+  const unnamed = fakeElement();
+  unnamed.tagName = "IMG";
+  unnamed.hidden = false;
+  unnamed.closest = () => null;
+
+  assert.equal(assistant.BAA_IMAGE_ASSISTANT.prepareImages([meaningful, decorative, unnamed], registry, reasons.BAA_REASON_CODES), 2);
+  assert.equal(meaningful.getAttribute("tabindex"), "0");
+  assert.equal(meaningful.getAttribute("aria-keyshortcuts"), null);
+  assert.equal(decorative.getAttribute("tabindex"), null);
+  assert.equal(unnamed.getAttribute("aria-label"), "ছবি");
+  registry.rollbackAll();
+  assert.equal(meaningful.getAttribute("tabindex"), null);
+});
+
 test("accessible-name resolver preserves aria-labelledby before aria-label", async () => {
   const label = { textContent: "Account settings" };
   const element = {
