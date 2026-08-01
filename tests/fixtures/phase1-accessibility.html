@@ -1,0 +1,22 @@
+<!doctype html>
+<html lang="en">
+  <head><meta charset="utf-8" /><title>Phase 1 accessibility fixture</title></head>
+  <body>
+    <header><nav aria-label="Primary"><a href="#main">Long navigation link</a></nav></header>
+    <main id="main">
+      <h1>Account registration</h1>
+      <button type="button">Continue</button>
+      <button type="button" aria-label="Open settings">⚙</button>
+
+      <form>
+        <div>
+          <label>Email address</label>
+          <input type="email" required />
+        </div>
+      </form>
+
+      <img src="data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///ywAAAAAAQABAAACAUwAOw==" />
+      <p id="dynamicArea">A dynamic control will be inserted here for mutation testing.</p>
+    </main>
+  </body>
+</html>

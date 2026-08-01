@@ -1,3 +1,11 @@
 # Test Fixtures
 
-Future sample webpages and page snapshots for testing accessibility behavior.
+- `phase1-accessibility.html`: initial scanner, preservation, nearby-label repair, missing image-alt detection, landmark inventory, and mutation-observer smoke testing.
+
+Manual Phase 1 check:
+
+1. Serve or open the fixture in Chrome with the unpacked extension enabled.
+2. Confirm the existing button names remain unchanged.
+3. Inspect the email input and confirm it temporarily receives `aria-labelledby` pointing to the adjacent label.
+4. Disable the assistant in settings and confirm the generated relationship is removed.
+5. Insert a new control under `#dynamicArea` and confirm the affected subtree is scanned after the debounce interval.

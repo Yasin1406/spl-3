@@ -64,3 +64,14 @@ button:focus-visible {
   outline: 3px solid #1f6feb;
   outline-offset: 2px;
 }
+
+.settings-link {
+  justify-self: start;
+  color: #174f83;
+  font-weight: 700;
+}
+
+.settings-link:focus-visible {
+  outline: 3px solid #1f6feb;
+  outline-offset: 3px;
+}

@@ -1,0 +1,36 @@
+<!doctype html>
+<html lang="bn">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>সহায়কের সেটিংস</title>
+    <link rel="stylesheet" href="settings.css" />
+  </head>
+  <body>
+    <main>
+      <h1>বাংলা অ্যাক্সেসিবিলিটি সহায়কের সেটিংস</h1>
+      <p>এই সেটিংস শুধু আপনার ব্রাউজারে সংরক্ষিত থাকে।</p>
+
+      <form id="settingsForm">
+        <fieldset>
+          <legend>মূল সহায়তা</legend>
+          <label class="check-row">
+            <input id="assistantEnabled" name="assistantEnabled" type="checkbox" />
+            ওয়েবপেজের অ্যাক্সেসিবিলিটি সমস্যা পরীক্ষা করুন
+          </label>
+        </fieldset>
+
+        <fieldset>
+          <legend>ঘোষণার বিস্তারিত</legend>
+          <label><input name="announcementDetail" type="radio" value="brief" /> সংক্ষিপ্ত</label>
+          <label><input name="announcementDetail" type="radio" value="standard" /> সাধারণ</label>
+          <label><input name="announcementDetail" type="radio" value="detailed" /> বিস্তারিত</label>
+        </fieldset>
+
+        <button type="submit">সেটিংস সংরক্ষণ করুন</button>
+        <p id="saveStatus" role="status" aria-live="polite"></p>
+      </form>
+    </main>
+    <script src="settings.js"></script>
+  </body>
+</html>

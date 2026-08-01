@@ -22,6 +22,17 @@ The extension currently includes a simple content-script prototype that:
 - Avoids partially translating unknown long sentences into broken mixed-language text.
 - Provides a popup button to start and stop translation.
 
+The Phase 1 accessibility foundation also:
+
+- inventories controls, form controls, images, headings, landmarks, and live regions;
+- records selected findings with stable reason codes;
+- preserves existing accessible names;
+- links one reliably adjacent label to an otherwise unnamed form control;
+- observes affected DOM regions with a debounced mutation queue;
+- records temporary changes in a reversible adaptation registry;
+- exposes announcements through an extension-owned live region;
+- provides an accessible settings page and background service worker.
+
 ## Build
 
 The extension is now structured like a final product: source files stay in `src`, production extension files are generated in `dist`.
@@ -29,6 +40,13 @@ The extension is now structured like a final product: source files stay in `src`
 ```powershell
 cd D:\SPL-3\extension
 npm.cmd run build
+```
+
+Run automated verification with:
+
+```powershell
+npm.cmd run check
+npm.cmd test
 ```
 
 Then load this folder in Chrome:

@@ -2,18 +2,27 @@
   "manifest_version": 3,
   "name": "Bangla Web Accessibility Assistant",
   "version": "0.1.0",
-  "description": "Captures live page DOM text and injects generic dictionary-based Bangla translations.",
+  "description": "Detects selected accessibility issues and applies reversible Bangla-friendly assistance.",
   "permissions": ["storage", "activeTab"],
+  "background": {
+    "service_worker": "background/serviceWorker.js"
+  },
   "action": {
     "default_title": "Bangla Accessibility Assistant",
     "default_popup": "popup/popup.html"
   },
+  "options_page": "settings/settings.html",
   "content_scripts": [
     {
       "matches": ["<all_urls>"],
       "js": [
         "content/banglaDictionary.js",
         "content/domTranslator.js",
+        "content/reasonCodes.js",
+        "content/accessibilityCore.js",
+        "content/adaptationRegistry.js",
+        "content/liveRegion.js",
+        "content/scanner.js",
         "content/contentScript.js"
       ],
       "run_at": "document_idle"
