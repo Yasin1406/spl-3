@@ -30,8 +30,11 @@ export function createProviderTranslationService({ providers, fetchImpl = fetch,
   return async function translateBatch(items) {
     const attempts = [];
     for (const provider of providers) {
+      const startedAt = Date.now();
       try {
         const translations = await requestProvider({ provider, items, fetchImpl, timeoutMs });
+        const failedBefore = attempts.length > 0 ? attempts.map((attempt) => attempt.provider).join(",") : "none";
+        logger.info?.(`Translation provider ${provider.name} succeeded: model=${provider.model} items=${items.length} durationMs=${Date.now() - startedAt} failedBefore=${failedBefore}`);
         return { translations, provider: provider.name, model: provider.model, failedProviders: attempts.map((attempt) => attempt.provider) };
       } catch (error) {
         attempts.push({ provider: provider.name, reason: safeReason(error) });

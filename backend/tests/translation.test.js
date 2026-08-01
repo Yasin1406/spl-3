@@ -31,6 +31,7 @@ test("provider configuration follows order and skips missing keys", () => {
 
 test("provider chain falls back after an HTTP failure", async () => {
   const calls = [];
+  const logs = [];
   const fetchImpl = async (url, options) => {
     calls.push({ url, options });
     if (url.includes("groq")) return { ok: false, status: 429 };
@@ -45,7 +46,7 @@ test("provider chain falls back after an HTTP failure", async () => {
       { name: "mistral", apiKey: "mistral-secret", endpoint: "https://api.mistral.test/chat", model: "mistral-model" }
     ],
     fetchImpl,
-    logger: { warn() {} }
+    logger: { warn(message) { logs.push(message); }, info(message) { logs.push(message); } }
   });
   const result = await translate(items);
   assert.equal(result.provider, "mistral");
@@ -53,6 +54,10 @@ test("provider chain falls back after an HTTP failure", async () => {
   assert.equal(calls.length, 2);
   assert.equal(calls[0].options.headers.Authorization, "Bearer groq-secret");
   assert.doesNotMatch(calls[0].options.body, /groq-secret/);
+  assert.match(logs[0], /groq failed: HTTP_429/);
+  assert.match(logs[1], /mistral succeeded: model=mistral-model items=1/);
+  assert.match(logs[1], /failedBefore=groq/);
+  assert.doesNotMatch(logs.join(" "), /groq-secret|mistral-secret|Account registration|অ্যাকাউন্ট/);
 });
 
 test("provider chain fails safely after every provider fails", async () => {

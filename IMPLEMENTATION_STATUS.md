@@ -18,6 +18,7 @@ Status values: `NOT_STARTED`, `PARTIAL`, `IMPLEMENTED`, `BLOCKED`, `DEFERRED`.
 - Added hybrid rule-first translation: fully covered rules remain local and unresolved text uses a validated Groq/Mistral/Cerebras backend fallback.
 - Prevented partial dictionary substitutions that produced broken mixed-language output.
 - Kept provider keys backend-only and added ordered provider failover, bounded batches, per-provider timeouts, in-memory caching, failure fallback, and rollback-safe asynchronous application.
+- Added sanitized success and failure logging with provider, model, item count, elapsed time, and failover path; page text, translations, bodies, and keys are excluded.
 
 ### Existing implementation inventory
 

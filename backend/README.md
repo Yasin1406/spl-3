@@ -78,6 +78,13 @@ Invoke-RestMethod `
 
 The response includes `provider`, `model`, `failedProviders`, and `translations`. If all providers fail, the response is `ALL_TRANSLATION_PROVIDERS_FAILED` with provider names but no keys or provider response bodies.
 
+The backend terminal logs both failures and successful provider calls. Successful entries contain only provider metadata, never source text, translated text, request bodies, or keys:
+
+```text
+Translation provider groq failed: HTTP_429
+Translation provider mistral succeeded: model=mistral-small-latest items=1 durationMs=418 failedBefore=groq
+```
+
 ## Automated verification
 
 ```powershell
