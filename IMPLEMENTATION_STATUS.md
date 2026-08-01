@@ -19,6 +19,8 @@ Status values: `NOT_STARTED`, `PARTIAL`, `IMPLEMENTED`, `BLOCKED`, `DEFERRED`.
 - Prevented partial dictionary substitutions that produced broken mixed-language output.
 - Kept provider keys backend-only and added ordered provider failover, bounded batches, per-provider timeouts, in-memory caching, failure fallback, and rollback-safe asynchronous application.
 - Added sanitized success and failure logging with provider, model, item count, elapsed time, and failover path; page text, translations, bodies, and keys are excluded.
+- Added adaptive Bangla form validation for native constraint failures, accessible descriptions and announcements, duplicate suppression, settings control, and reversible cleanup without reading field values.
+- Added temporary Bangla `setCustomValidity` integration so Chrome's visible native validation bubble is translated; extension-owned messages clear on input/disable and page-authored custom errors remain untouched.
 
 ### Existing implementation inventory
 
@@ -77,6 +79,8 @@ Status values: `NOT_STARTED`, `PARTIAL`, `IMPLEMENTED`, `BLOCKED`, `DEFERRED`.
 - Live provider request: not run because real API keys are intentionally not stored in the repository.
 - Command: backend checks/tests after multi-provider refactor
 - Result: passed; 7 tests, including ordered configuration, first-provider failure, next-provider success, and all-provider safe failure.
+- Command: extension checks/tests/build after adaptive form validation
+- Result: passed; 13 JavaScript files checked, 12 tests passed, and the production extension rebuilt successfully.
 
 ### Current feature status
 
@@ -90,7 +94,7 @@ Status values: `NOT_STARTED`, `PARTIAL`, `IMPLEMENTED`, `BLOCKED`, `DEFERRED`.
 | Bangla accessible-name generation | PARTIAL | A local phrase/word translator exists, but it does not implement the required accessible-name hierarchy or AI fallback validation. |
 | Semantic-role inference and repair | NOT_STARTED | No candidate detection, deterministic score, keyboard repair, validators, or rollback entry. |
 | Dynamic announcements | NOT_STARTED | No extension-owned NVDA-compatible live region or update prioritization. |
-| Form guidance | NOT_STARTED | No label association, constraint extraction, coverage calculation, Bangla templates, or safe AI fallback. |
+| Form guidance | PARTIAL | Required, email, length, range, and selected password-pattern constraints have Bangla templates, native interaction feedback, coverage calculation, accessible announcements, and rollback. AI simplification of unmatched free-text requirements and manual NVDA validation remain. |
 | Image interpretation | NOT_STARTED | No informative/decorative classification, OCR, multimodal adapter, or accessible delivery. |
 | Output detail preference | NOT_STARTED | No brief/standard/detailed resolver. |
 | Navigation support | NOT_STARTED | No region inventory, skip links, or safe focus movement. |

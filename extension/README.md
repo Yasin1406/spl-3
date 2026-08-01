@@ -33,6 +33,10 @@ The Phase 1 accessibility foundation also:
 - exposes announcements through an extension-owned live region;
 - provides an accessible settings page and background service worker.
 
+## Adaptive Bangla form validation
+
+When enabled in settings, the extension listens to native form validation without reading or transmitting field values. It explains required, email, minimum/maximum length, minimum/maximum value, and selected password-pattern requirements in simple Bangla. Guidance is shown in Chrome's native validation bubble through a temporary custom-validity message, connected through `aria-describedby`, announced through the extension live region, deduplicated, and removed reversibly when corrected or disabled. Existing page-provided custom-validity messages are preserved. Unknown constraints receive a safe generic Bangla fallback.
+
 ## Hybrid translation
 
 When DOM Translation is enabled, exact phrases, recognized patterns, and fully covered short labels are translated locally. Unresolved text is sent in a bounded batch to the local backend, which tries Groq, Mistral, and Cerebras in the configured order and validates the Bangla result. Partial dictionary replacements are not applied.

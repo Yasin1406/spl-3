@@ -24,6 +24,7 @@
         "content/adaptationRegistry.js",
         "content/liveRegion.js",
         "content/scanner.js",
+        "content/formAssistant.js",
         "content/contentScript.js"
       ],
       "run_at": "document_idle"

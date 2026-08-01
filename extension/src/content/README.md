@@ -19,4 +19,5 @@ Current files:
 - `scanner.js`: accessibility inventory and selected issue detection.
 - `adaptationRegistry.js`: validated temporary attribute changes and rollback.
 - `liveRegion.js`: extension-owned polite and assertive announcement channels.
+- `formAssistant.js`: constraint extraction, Bangla validation guidance, interaction listeners, accessible descriptions, and cleanup.
 - `contentScript.js`: coordinates scanning, affected-region mutation handling, repair, announcements, translation, and rollback.

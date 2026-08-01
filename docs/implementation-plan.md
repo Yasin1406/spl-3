@@ -87,7 +87,7 @@ Exit criteria:
 
 ## Phase 2 - Accessible names and preservation
 
-Status: `NOT_STARTED`
+Status: `PARTIAL`
 
 Hybrid translation groundwork completed on 2026-08-01:
 
@@ -131,7 +131,7 @@ Exit criteria:
 
 ## Phase 4 - Form assistance
 
-Status: `NOT_STARTED`
+Status: `PARTIAL`
 
 Tasks:
 
@@ -141,6 +141,20 @@ Tasks:
 4. Calculate rule coverage and use AI only below the specified sufficiency threshold.
 5. Validate that every original condition is retained and none is invented.
 6. Announce errors and move focus only when safe and appropriate.
+
+Implemented on 2026-08-01:
+
+- Native invalid, blur, and correction interaction handling.
+- Constraint extraction for required, email, length, range, and selected password patterns.
+- Rule coverage calculation, Bangla digits/templates, active-validity filtering, and safe generic fallback.
+- NVDA-compatible assertive/polite announcements with duplicate suppression.
+- `aria-describedby` preservation, extension-owned descriptions, settings control, and complete rollback.
+- Tests verify combined constraint coverage, unmatched-pattern fallback detection, active email errors, and multiple reversible attributes.
+
+Remaining:
+
+- Provider-assisted simplification for unmatched free-text page errors.
+- Manual Chrome keyboard and NVDA verification against the fixture and representative third-party forms.
 
 Exit criteria:
 

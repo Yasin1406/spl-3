@@ -1,10 +1,13 @@
 (function registerAdaptationRegistry(globalScope) {
   function createRegistry() {
     const adaptations = new Map();
+    const attributesByElement = new WeakMap();
     let sequence = 0;
 
     function applyAttribute({ element, attribute, value, reasonCode, ruleScore = 1 }) {
-      if (!element || !attribute || adaptations.has(element)) return null;
+      if (!element || !attribute) return null;
+      const elementAttributes = attributesByElement.get(element) || new Map();
+      if (elementAttributes.has(attribute)) return null;
 
       const id = `baa-adaptation-${++sequence}`;
       const hadAttribute = element.hasAttribute(attribute);
@@ -24,11 +27,15 @@
           if (element.getAttribute("data-baa-adapted") === id) {
             element.removeAttribute("data-baa-adapted");
           }
-          adaptations.delete(element);
+          adaptations.delete(id);
+          elementAttributes.delete(attribute);
+          if (elementAttributes.size === 0) attributesByElement.delete(element);
         }
       });
 
-      adaptations.set(element, record);
+      adaptations.set(id, record);
+      elementAttributes.set(attribute, id);
+      attributesByElement.set(element, elementAttributes);
       return record;
     }
 

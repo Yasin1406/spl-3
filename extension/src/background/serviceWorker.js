@@ -1,5 +1,6 @@
 const DEFAULTS = Object.freeze({
   baaAssistantEnabled: true,
+  baaFormGuidanceEnabled: true,
   baaTranslationEnabled: false,
   baaAnnouncementDetail: "standard",
   baaAiTranslationEnabled: true,

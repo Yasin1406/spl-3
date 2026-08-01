@@ -3,15 +3,18 @@
   const scanner = globalThis.BAA_ACCESSIBILITY_SCANNER;
   const registryFactory = globalThis.BAA_ADAPTATION_REGISTRY;
   const liveRegionFactory = globalThis.BAA_LIVE_REGION;
+  const formAssistantFactory = globalThis.BAA_FORM_ASSISTANT;
   const reasons = globalThis.BAA_REASON_CODES;
-  if (!translator || !scanner || !registryFactory || !liveRegionFactory || !reasons) return;
+  if (!translator || !scanner || !registryFactory || !liveRegionFactory || !formAssistantFactory || !reasons) return;
 
   const TRANSLATION_KEY = "baaTranslationEnabled";
   const ASSISTANT_KEY = "baaAssistantEnabled";
+  const FORM_GUIDANCE_KEY = "baaFormGuidanceEnabled";
   const registry = registryFactory.createRegistry();
   let translationObserver = null;
   let accessibilityObserver = null;
   let liveRegion = null;
+  let formAssistant = null;
   let pendingRoots = new Set();
   let scanTimer = null;
   let aiTranslationQueue = [];
@@ -36,9 +39,14 @@
     translator.restorePage(document.body);
   }
 
-  function startAssistant() {
+  function startAssistant(formGuidanceEnabled = true) {
+    if (typeof formGuidanceEnabled !== "boolean") {
+      chrome.storage.local.get({ [FORM_GUIDANCE_KEY]: true }, (state) => startAssistant(Boolean(state[FORM_GUIDANCE_KEY])));
+      return;
+    }
     if (accessibilityObserver) return;
     liveRegion = liveRegionFactory.createLiveRegion(document);
+    if (formGuidanceEnabled) startFormGuidance();
     analyze(document);
     accessibilityObserver = createAccessibilityObserver();
   }
@@ -49,9 +57,21 @@
     if (scanTimer) clearTimeout(scanTimer);
     scanTimer = null;
     pendingRoots.clear();
+    stopFormGuidance();
     registry.rollbackAll();
     liveRegion?.remove();
     liveRegion = null;
+  }
+
+  function startFormGuidance() {
+    if (formAssistant || !liveRegion) return;
+    formAssistant = formAssistantFactory.createFormAssistant({ documentRef: document, registry, announcer: liveRegion });
+    formAssistant.start();
+  }
+
+  function stopFormGuidance() {
+    formAssistant?.stop();
+    formAssistant = null;
   }
 
   function analyze(root) {
@@ -184,15 +204,16 @@
     return issues.reduce((counts, entry) => ({ ...counts, [entry.reasonCode]: (counts[entry.reasonCode] || 0) + 1 }), {});
   }
 
-  chrome.storage.local.get({ [TRANSLATION_KEY]: false, [ASSISTANT_KEY]: true }, (state) => {
+  chrome.storage.local.get({ [TRANSLATION_KEY]: false, [ASSISTANT_KEY]: true, [FORM_GUIDANCE_KEY]: true }, (state) => {
     if (state[TRANSLATION_KEY]) startTranslation();
-    if (state[ASSISTANT_KEY]) startAssistant();
+    if (state[ASSISTANT_KEY]) startAssistant(Boolean(state[FORM_GUIDANCE_KEY]));
   });
 
   chrome.storage.onChanged.addListener((changes, areaName) => {
     if (areaName !== "local") return;
     if (changes[TRANSLATION_KEY]) changes[TRANSLATION_KEY].newValue ? startTranslation() : stopTranslation();
-    if (changes[ASSISTANT_KEY]) changes[ASSISTANT_KEY].newValue ? startAssistant() : stopAssistant();
+    if (changes[ASSISTANT_KEY]) changes[ASSISTANT_KEY].newValue ? startAssistant(undefined) : stopAssistant();
+    if (changes[FORM_GUIDANCE_KEY] && accessibilityObserver) changes[FORM_GUIDANCE_KEY].newValue ? startFormGuidance() : stopFormGuidance();
   });
 
   chrome.runtime.onMessage.addListener((message, _sender, sendResponse) => {

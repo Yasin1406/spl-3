@@ -1,13 +1,15 @@
 (function setupSettings() {
   const form = document.getElementById("settingsForm");
   const enabled = document.getElementById("assistantEnabled");
+  const formGuidanceEnabled = document.getElementById("formGuidanceEnabled");
   const status = document.getElementById("saveStatus");
   const aiEnabled = document.getElementById("aiTranslationEnabled");
   const backendUrl = document.getElementById("backendUrl");
-  const defaults = { baaAssistantEnabled: true, baaAnnouncementDetail: "standard", baaAiTranslationEnabled: true, baaBackendUrl: "http://127.0.0.1:3000" };
+  const defaults = { baaAssistantEnabled: true, baaFormGuidanceEnabled: true, baaAnnouncementDetail: "standard", baaAiTranslationEnabled: true, baaBackendUrl: "http://127.0.0.1:3000" };
 
   chrome.storage.local.get(defaults, (values) => {
     enabled.checked = Boolean(values.baaAssistantEnabled);
+    formGuidanceEnabled.checked = Boolean(values.baaFormGuidanceEnabled);
     aiEnabled.checked = Boolean(values.baaAiTranslationEnabled);
     backendUrl.value = values.baaBackendUrl;
     const detail = form.elements.announcementDetail;
@@ -18,6 +20,7 @@
     event.preventDefault();
     chrome.storage.local.set({
       baaAssistantEnabled: enabled.checked,
+      baaFormGuidanceEnabled: formGuidanceEnabled.checked,
       baaAnnouncementDetail: form.elements.announcementDetail.value || "standard",
       baaAiTranslationEnabled: aiEnabled.checked,
       baaBackendUrl: backendUrl.value.replace(/\/$/, "") || defaults.baaBackendUrl
