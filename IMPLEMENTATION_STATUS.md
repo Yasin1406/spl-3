@@ -15,6 +15,9 @@ Status values: `NOT_STARTED`, `PARTIAL`, `IMPLEMENTED`, `BLOCKED`, `DEFERRED`.
 - Added one conservative repair that associates an unnamed form control with exactly one nearby unassociated label in a single-control container.
 - Added a Manifest V3 background service worker and accessible settings page.
 - Added a Phase 1 fixture, recursive syntax checker, and core automated tests.
+- Added hybrid rule-first translation: fully covered rules remain local and unresolved text uses a validated Groq/Mistral/Cerebras backend fallback.
+- Prevented partial dictionary substitutions that produced broken mixed-language output.
+- Kept provider keys backend-only and added ordered provider failover, bounded batches, per-provider timeouts, in-memory caching, failure fallback, and rollback-safe asynchronous application.
 
 ### Existing implementation inventory
 
@@ -66,6 +69,13 @@ Status values: `NOT_STARTED`, `PARTIAL`, `IMPLEMENTED`, `BLOCKED`, `DEFERRED`.
 - Command: parse built `dist/manifest.json` with Node
 - Result: passed.
 - Manual Chrome/NVDA testing: still pending.
+- Command: `npm.cmd run check` and `npm.cmd test` in `backend/`
+- Result: passed; backend syntax checks and 5 tests passed with 0 failures.
+- Command: `npm.cmd run check`, `npm.cmd test`, and `npm.cmd run build` in `extension/` after hybrid translation changes
+- Result: passed; 12 files checked, 6 tests passed, and the production extension rebuilt successfully.
+- Live provider request: not run because real API keys are intentionally not stored in the repository.
+- Command: backend checks/tests after multi-provider refactor
+- Result: passed; 7 tests, including ordered configuration, first-provider failure, next-provider success, and all-provider safe failure.
 
 ### Current feature status
 
@@ -90,9 +100,9 @@ Status values: `NOT_STARTED`, `PARTIAL`, `IMPLEMENTED`, `BLOCKED`, `DEFERRED`.
 | Page/session/long-term context | NOT_STARTED | Only one long-term translation boolean in `chrome.storage.local` exists. |
 | Preference confirmation | NOT_STARTED | No evidence counter, accessible confirmation dialog, or profile lifecycle. |
 | Reversible adaptation registry | PARTIAL | General validated attribute records and rollback-all exist; additional adaptation types and audit metadata are pending. |
-| Backend REST API | NOT_STARTED | README placeholders only. |
+| Backend REST API | PARTIAL | Express health and bounded hybrid-translation endpoints exist; other assist/profile endpoints are pending. |
 | PostgreSQL persistence | NOT_STARTED | README placeholders only. |
-| AI prompts, schemas, and validators | NOT_STARTED | README placeholders only. |
+| AI prompts, schemas, and validators | PARTIAL | Shared translation prompt, Groq/Mistral/Cerebras adapters, request/output validation, ordered failover, timeout, and safe failure path exist; other AI tasks are pending. |
 | Automated tests and fixtures | PARTIAL | Five Node core tests and one Phase 1 fixture exist; browser integration coverage is pending. |
 | Accessibility/NVDA documentation | NOT_STARTED | No manual test checklist or recorded results. |
 
@@ -129,4 +139,4 @@ Status values: `NOT_STARTED`, `PARTIAL`, `IMPLEMENTED`, `BLOCKED`, `DEFERRED`.
 
 ### Next recommended task
 
-- Load `extension/dist` in Chrome, execute the Phase 1 fixture checklist with keyboard and NVDA, fix browser-only findings, and then close Phase 1 before beginning the full accessible-name hierarchy in Phase 2.
+- Add one or more Groq/Mistral/Cerebras keys to `backend/.env`, start the backend, reload `extension/dist`, and manually verify rule-only, provider failover, all-provider failure, and rollback behavior.

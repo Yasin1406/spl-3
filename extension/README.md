@@ -33,6 +33,12 @@ The Phase 1 accessibility foundation also:
 - exposes announcements through an extension-owned live region;
 - provides an accessible settings page and background service worker.
 
+## Hybrid translation
+
+When DOM Translation is enabled, exact phrases, recognized patterns, and fully covered short labels are translated locally. Unresolved text is sent in a bounded batch to the local backend, which tries Groq, Mistral, and Cerebras in the configured order and validates the Bangla result. Partial dictionary replacements are not applied.
+
+Start the backend first by following `../backend/README.md`. Provider API keys must never be added to extension source, settings, or the built `dist` directory.
+
 ## Build
 
 The extension is now structured like a final product: source files stay in `src`, production extension files are generated in `dist`.

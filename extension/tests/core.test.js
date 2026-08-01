@@ -78,3 +78,15 @@ test("accessible-name resolver uses visible text without AI", async () => {
     { name: "Submit", source: "visible-text" }
   );
 });
+
+test("rule translator does not produce partially translated mixed-language text", async () => {
+  const dictionarySource = await readFile(new URL("../src/content/banglaDictionary.js", import.meta.url), "utf8");
+  const translatorSource = await readFile(new URL("../src/content/domTranslator.js", import.meta.url), "utf8");
+  const sandbox = vm.createContext({ globalThis: null, window: null });
+  sandbox.globalThis = sandbox;
+  sandbox.window = sandbox;
+  vm.runInContext(dictionarySource, sandbox);
+  vm.runInContext(translatorSource, sandbox);
+  assert.equal(sandbox.BAA_DOM_TRANSLATOR.translateText("Account registration"), "Account registration");
+  assert.equal(sandbox.BAA_DOM_TRANSLATOR.translateText("Create account"), "অ্যাকাউন্ট তৈরি করুন");
+});

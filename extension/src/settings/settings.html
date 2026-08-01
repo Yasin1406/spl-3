@@ -21,6 +21,17 @@
         </fieldset>
 
         <fieldset>
+          <legend>AI অনুবাদ</legend>
+          <label class="check-row">
+            <input id="aiTranslationEnabled" name="aiTranslationEnabled" type="checkbox" />
+            নিয়মে অনুবাদ সম্ভব না হলে ব্যাকএন্ডের AI প্রদানকারী ব্যবহার করুন
+          </label>
+          <label for="backendUrl">স্থানীয় ব্যাকএন্ড ঠিকানা</label>
+          <input id="backendUrl" name="backendUrl" type="url" value="http://127.0.0.1:3000" aria-describedby="backendHelp" />
+          <p id="backendHelp">Groq, Mistral ও Cerebras API key শুধু ব্যাকএন্ডে থাকবে, এক্সটেনশনে নয়।</p>
+        </fieldset>
+
+        <fieldset>
           <legend>ঘোষণার বিস্তারিত</legend>
           <label><input name="announcementDetail" type="radio" value="brief" /> সংক্ষিপ্ত</label>
           <label><input name="announcementDetail" type="radio" value="standard" /> সাধারণ</label>

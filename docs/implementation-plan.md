@@ -89,6 +89,13 @@ Exit criteria:
 
 Status: `NOT_STARTED`
 
+Hybrid translation groundwork completed on 2026-08-01:
+
+- Local rules now require full coverage; unresolved text is sent to an ordered Groq/Mistral/Cerebras backend fallback rather than partially translated.
+- The extension batches, temporarily caches, applies, and rolls back validated translations.
+- The Express backend keeps all keys server-side, bounds and sanitizes requests, times out each provider, validates complete Bangla output, and continues to the next provider on failure.
+- Live provider verification remains pending until user-provided API keys are configured.
+
 Tasks:
 
 1. Implement the required source order: associated label, visible text, `aria-labelledby`, title, placeholder, known icon, nearby context, then AI fallback.

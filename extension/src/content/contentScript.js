@@ -14,16 +14,25 @@
   let liveRegion = null;
   let pendingRoots = new Set();
   let scanTimer = null;
+  let aiTranslationQueue = [];
+  let aiTranslationTimer = null;
+  let translationGeneration = 0;
 
   function startTranslation() {
     if (translationObserver) return;
-    translator.translatePage(document.body);
+    translationGeneration += 1;
+    queueAiTranslations(translator.translatePage(document.body));
     translationObserver = createTranslationObserver();
   }
 
   function stopTranslation() {
+    translationGeneration += 1;
     translationObserver?.disconnect();
     translationObserver = null;
+    if (aiTranslationTimer) clearTimeout(aiTranslationTimer);
+    aiTranslationTimer = null;
+    translator.discardAiCandidates(aiTranslationQueue.map((item) => item.id));
+    aiTranslationQueue = [];
     translator.restorePage(document.body);
   }
 
@@ -120,15 +129,55 @@
       for (const mutation of mutations) {
         if (mutation.type === "childList") {
           for (const node of mutation.addedNodes) {
-            if (node.nodeType === Node.ELEMENT_NODE) translator.translatePage(node);
-            if (node.nodeType === Node.TEXT_NODE && node.parentElement) translator.translatePage(node.parentElement);
+            if (node.nodeType === Node.ELEMENT_NODE) queueAiTranslations(translator.translatePage(node));
+            if (node.nodeType === Node.TEXT_NODE && node.parentElement) queueAiTranslations(translator.translatePage(node.parentElement));
           }
         }
-        if (mutation.type === "attributes" && mutation.target instanceof Element) translator.translatePage(mutation.target);
+        if (mutation.type === "attributes" && mutation.target instanceof Element) queueAiTranslations(translator.translatePage(mutation.target));
       }
     });
     observer.observe(document.documentElement, { childList: true, subtree: true, attributes: true, attributeFilter: ["aria-label", "title", "alt", "placeholder"] });
     return observer;
+  }
+
+  function queueAiTranslations(candidates) {
+    if (!Array.isArray(candidates) || candidates.length === 0 || !translationObserver && aiTranslationQueue.length > 0) return;
+    aiTranslationQueue.push(...candidates);
+    if (aiTranslationTimer) return;
+    aiTranslationTimer = setTimeout(flushAiTranslations, 120);
+  }
+
+  async function flushAiTranslations() {
+    aiTranslationTimer = null;
+    if (aiTranslationQueue.length === 0) return;
+    const batch = aiTranslationQueue.splice(0, 20);
+    const generation = translationGeneration;
+    try {
+      const response = await sendRuntimeMessage({ type: "BAA_TRANSLATE_BATCH", items: batch });
+      if (generation === translationGeneration && translationObserver && Array.isArray(response?.translations)) {
+        translator.applyAiTranslations(response.translations);
+        globalThis.BAA_LAST_TRANSLATION_PROVIDER = {
+          provider: response.provider || "unknown",
+          model: response.model || null,
+          failedProviders: response.failedProviders || []
+        };
+      } else {
+        translator.discardAiCandidates(batch.map((item) => item.id));
+      }
+    } catch {
+      translator.discardAiCandidates(batch.map((item) => item.id));
+      liveRegion?.announce("AI অনুবাদ সেবা এখন পাওয়া যাচ্ছে না। নিয়মভিত্তিক অনুবাদ রাখা হয়েছে।");
+    }
+    if (aiTranslationQueue.length > 0) aiTranslationTimer = setTimeout(flushAiTranslations, 120);
+  }
+
+  function sendRuntimeMessage(message) {
+    return new Promise((resolve, reject) => {
+      chrome.runtime.sendMessage(message, (response) => {
+        if (chrome.runtime.lastError || response?.error) reject(new Error(response?.error || chrome.runtime.lastError?.message));
+        else resolve(response);
+      });
+    });
   }
 
   function countReasons(issues) {

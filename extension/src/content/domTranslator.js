@@ -17,11 +17,12 @@
     "alt",
     "placeholder"
   ];
+  const pendingAiTargets = new Map();
+  let aiSequence = 0;
 
   function translatePage(root = document.body) {
-    if (!root) return;
-    translateTextNodes(root);
-    translateAttributes(root);
+    if (!root) return [];
+    return [...translateTextNodes(root), ...translateAttributes(root)];
   }
 
   function restorePage(root = document.body) {
@@ -49,13 +50,11 @@
       textNodes.push(walker.currentNode);
     }
 
-    for (const node of textNodes) {
-      translateTextNode(node);
-    }
+    return textNodes.map(translateTextNode).filter(Boolean);
   }
 
   function translateTextNode(node) {
-    if (node.__baaTranslated) return;
+    if (node.__baaTranslated || node.__baaAiPendingId) return null;
 
     const originalText = node.nodeValue;
     const translatedText = translateText(originalText);
@@ -64,7 +63,10 @@
       node.__baaOriginalText = originalText;
       node.nodeValue = translatedText;
       node.__baaTranslated = true;
+      return null;
     }
+
+    return createAiCandidate({ kind: "text", target: node, text: originalText, context: node.parentElement?.tagName?.toLowerCase() || "page text" });
   }
 
   function restoreTextNodes(root) {
@@ -88,27 +90,34 @@
       node.nodeValue = node.__baaOriginalText;
       node.__baaTranslated = false;
       node.__baaOriginalText = "";
+      node.__baaAiPendingId = "";
     }
   }
 
   function translateAttributes(root) {
     const elements = root.matches ? [root, ...root.querySelectorAll("*")] : [...root.querySelectorAll("*")];
 
+    const candidates = [];
     for (const element of elements) {
       if (SKIPPED_TAGS.has(element.tagName)) continue;
 
       for (const attributeName of TRANSLATABLE_ATTRIBUTES) {
         const value = element.getAttribute(attributeName);
-        if (!value || element.dataset[`baa${toDatasetSuffix(attributeName)}Translated`]) continue;
+        const suffix = toDatasetSuffix(attributeName);
+        if (!value || element.dataset[`baa${suffix}Translated`] || element.dataset[`baa${suffix}AiPending`]) continue;
 
         const translatedValue = translateText(value);
         if (translatedValue !== value) {
           element.setAttribute(`data-baa-original-${attributeName}`, value);
           element.setAttribute(attributeName, translatedValue);
           element.dataset[`baa${toDatasetSuffix(attributeName)}Translated`] = "true";
+        } else {
+          const candidate = createAiCandidate({ kind: "attribute", target: element, attributeName, text: value, context: `${element.tagName.toLowerCase()} ${attributeName}` });
+          if (candidate) candidates.push(candidate);
         }
       }
     }
+    return candidates;
   }
 
   function restoreAttributes(root) {
@@ -125,6 +134,7 @@
           element.removeAttribute(originalAttributeName);
           delete element.dataset[datasetKey];
         }
+        delete element.dataset[`baa${toDatasetSuffix(attributeName)}AiPending`];
       }
     }
   }
@@ -188,9 +198,8 @@
     const words = text.match(/[A-Za-z][A-Za-z'-]*/g) || [];
     if (words.length === 0 || words.length > 3) return "";
 
-    const translated = text.replace(/\b[A-Za-z][A-Za-z'-]*\b/g, (word) => {
-      return dictionary.shortWords?.[word.toLowerCase()] || word;
-    });
+    if (!words.every((word) => dictionary.shortWords?.[word.toLowerCase()])) return "";
+    const translated = text.replace(/\b[A-Za-z][A-Za-z'-]*\b/g, (word) => dictionary.shortWords[word.toLowerCase()]);
 
     return translated !== text ? translated : "";
   }
@@ -223,7 +232,55 @@
       .join("");
   }
 
+  function createAiCandidate({ kind, target, attributeName = "", text, context }) {
+    const normalizedText = String(text || "").trim();
+    if (!/[A-Za-z]/.test(normalizedText) || normalizedText.length > 500) return null;
+    const id = `translation-${++aiSequence}`;
+    pendingAiTargets.set(id, { kind, target, attributeName, originalText: text });
+    if (kind === "text") target.__baaAiPendingId = id;
+    else target.dataset[`baa${toDatasetSuffix(attributeName)}AiPending`] = id;
+    return { id, text: normalizedText, context };
+  }
+
+  function applyAiTranslations(translations) {
+    let applied = 0;
+    for (const translation of translations || []) {
+      const pending = pendingAiTargets.get(translation?.id);
+      const translatedText = String(translation?.translatedText || "").trim();
+      if (!pending || !/[\u0980-\u09FF]/u.test(translatedText)) continue;
+      if (pending.kind === "text") {
+        const leadingWhitespace = pending.originalText.match(/^\s*/)[0];
+        const trailingWhitespace = pending.originalText.match(/\s*$/)[0];
+        pending.target.__baaOriginalText = pending.originalText;
+        pending.target.nodeValue = `${leadingWhitespace}${translatedText}${trailingWhitespace}`;
+        pending.target.__baaTranslated = true;
+        pending.target.__baaAiPendingId = "";
+      } else {
+        const suffix = toDatasetSuffix(pending.attributeName);
+        pending.target.setAttribute(`data-baa-original-${pending.attributeName}`, pending.originalText);
+        pending.target.setAttribute(pending.attributeName, translatedText);
+        pending.target.dataset[`baa${suffix}Translated`] = "true";
+        delete pending.target.dataset[`baa${suffix}AiPending`];
+      }
+      pendingAiTargets.delete(translation.id);
+      applied += 1;
+    }
+    return applied;
+  }
+
+  function discardAiCandidates(ids) {
+    for (const id of ids || []) {
+      const pending = pendingAiTargets.get(id);
+      if (!pending) continue;
+      if (pending.kind === "text") pending.target.__baaAiPendingId = "";
+      else delete pending.target.dataset[`baa${toDatasetSuffix(pending.attributeName)}AiPending`];
+      pendingAiTargets.delete(id);
+    }
+  }
+
   globalScope.BAA_DOM_TRANSLATOR = {
+    applyAiTranslations,
+    discardAiCandidates,
     restorePage,
     translatePage,
     translateText
