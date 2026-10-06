@@ -1,4 +1,5 @@
 import { validateImageAnalysisResult } from "../validators/imageAnalysis.js";
+import { providerRequestOptions } from "./providerPolicy.js";
 
 export function visionProvidersFromEnvironment(environment, translationProviders) {
   return translationProviders.flatMap((provider) => {
@@ -39,7 +40,8 @@ async function requestProvider(provider, input, fetchImpl, timeoutMs) {
       body: JSON.stringify({ model: provider.model, messages: [{ role: "user", content: [
         { type: "text", text: `${instruction}\nNearby context: ${input.context || "none"}\nReturn JSON only: {\"text\":\"Bangla result\"}` },
         { type: "image_url", image_url: { url: input.imageDataUrl } }
-      ] }], response_format: { type: "json_object" }, temperature: 0.1, max_tokens: 800 })
+      ] }], response_format: { type: "json_object" }, temperature: 0.1, max_tokens: 800,
+        ...providerRequestOptions(provider) })
     });
     if (!response.ok) { const error = new Error(`HTTP_${response.status}`); error.code = error.message; throw error; }
     const result = await response.json();

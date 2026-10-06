@@ -38,8 +38,8 @@ test("provider configuration follows order and skips missing keys", () => {
     CEREBRAS_API_KEY: "c-key",
     GROQ_API_KEY: "g-key"
   }).map(({ name, model }) => ({ name, model })), [
-    { name: "cerebras", model: "llama3.1-8b" },
-    { name: "groq", model: "llama-3.1-8b-instant" }
+    { name: "cerebras", model: "gpt-oss-120b" },
+    { name: "groq", model: "qwen/qwen3.8-27b" }
   ]);
 });
 

@@ -1,9 +1,10 @@
 import { validateProviderTranslations } from "../validators/translation.js";
+import { providerRequestOptions } from "./providerPolicy.js";
 
 const PROVIDER_DEFINITIONS = Object.freeze({
-  groq: Object.freeze({ endpoint: "https://api.groq.com/openai/v1/chat/completions", keyVariable: "GROQ_API_KEY", modelVariable: "GROQ_MODEL", defaultModel: "llama-3.1-8b-instant" }),
-  mistral: Object.freeze({ endpoint: "https://api.mistral.ai/v1/chat/completions", keyVariable: "MISTRAL_API_KEY", modelVariable: "MISTRAL_MODEL", defaultModel: "mistral-small-latest" }),
-  cerebras: Object.freeze({ endpoint: "https://api.cerebras.ai/v1/chat/completions", keyVariable: "CEREBRAS_API_KEY", modelVariable: "CEREBRAS_MODEL", defaultModel: "llama3.1-8b" })
+  groq: Object.freeze({ endpoint: "https://api.groq.com/openai/v1/chat/completions", keyVariable: "GROQ_API_KEY", modelVariable: "GROQ_MODEL", defaultModel: "qwen/qwen3.8-27b" }),
+  mistral: Object.freeze({ endpoint: "https://api.mistral.ai/v1/chat/completions", keyVariable: "MISTRAL_API_KEY", modelVariable: "MISTRAL_MODEL", defaultModel: "mistral-small-2603" }),
+  cerebras: Object.freeze({ endpoint: "https://api.cerebras.ai/v1/chat/completions", keyVariable: "CEREBRAS_API_KEY", modelVariable: "CEREBRAS_MODEL", defaultModel: "gpt-oss-120b" })
 });
 
 const SYSTEM_PROMPT = "You are a Bangla web accessibility translation module. Translate only the supplied text into natural, understandable Bangla. Preserve product names, names, numbers, dates, requirements, warnings, links, and functional meaning. Never invent or remove facts, actions, or instructions. Return JSON only with this exact shape: {\"translations\":[{\"id\":\"the supplied id\",\"translatedText\":\"Bangla translation\"}]}. Return exactly one translation for every supplied id, preserve each id exactly, and do not use Markdown fences.";
@@ -24,7 +25,7 @@ export function providersFromEnvironment(environment) {
     seen.add(name);
     const apiKey = String(environment[definition.keyVariable] || "").trim();
     if (!apiKey) continue;
-    providers.push({ name, apiKey, endpoint: definition.endpoint, model: String(environment[definition.modelVariable] || definition.defaultModel).trim() });
+    providers.push({ name, apiKey, endpoint: definition.endpoint, model: String(environment[definition.modelVariable] || "").trim() || definition.defaultModel });
   }
   return providers;
 }
@@ -44,7 +45,7 @@ export function createProviderTranslationService({ providers, fetchImpl = fetch,
         return { translations, provider: provider.name, model: provider.model, failedProviders: attempts.map((attempt) => attempt.provider) };
       } catch (error) {
         attempts.push({ provider: provider.name, reason: safeReason(error) });
-        logger.warn?.(`Translation provider ${provider.name} failed: ${safeReason(error)}`);
+        logger.warn?.(`Translation provider ${provider.name} failed: ${safeReason(error)} model=${provider.model}`);
       }
     }
     const error = new Error("ALL_TRANSLATION_PROVIDERS_FAILED");
@@ -72,7 +73,8 @@ async function requestProvider({ provider, items, verbosity, fetchImpl, timeoutM
         response_format: { type: "json_object" },
         temperature: 0.1,
         max_tokens: 1200,
-        stream: false
+        stream: false,
+        ...providerRequestOptions(provider)
       })
     });
     if (!response.ok) throw providerError(response.status);

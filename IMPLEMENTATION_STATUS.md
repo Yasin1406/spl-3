@@ -2,6 +2,172 @@
 
 Status values: `NOT_STARTED`, `PARTIAL`, `IMPLEMENTED`, `BLOCKED`, `DEFERRED`.
 
+## 2026-10-06 — Restore ordered provider fallback
+
+### Completed
+
+- At the user's request, removed round-robin selection for both translation and image requests. Every request now follows `AI_PROVIDER_ORDER`: Groq first, then Mistral on failure, then Cerebras on failure. Stop at the first validated success; skip unconfigured providers/vision models.
+- Retained the current working model choices, model-specific reasoning controls, timeouts, validators, and safe failure handling.
+- Updated configuration comments, backend documentation, startup scheduling message, and regression tests. The earlier rotation entry below is historical and superseded by this entry.
+
+### Changed files
+
+- `.env.example`, `backend/README.md`, `backend/src/server.js`.
+- `backend/src/services/{providerPolicy,providerTranslation,providerImageAnalysis}.js`.
+- Renamed `backend/tests/providerRotation.test.js` to `backend/tests/providerFailover.test.js` and updated coverage for fixed order.
+- `IMPLEMENTATION_STATUS.md`, `docs/implementation-plan.md`.
+
+### Tests run
+
+- Backend `npm.cmd run check`: PASS.
+- Backend `npm.cmd test`: PASS, 17 tests. Covers repeated/concurrent Groq-first calls, Cerebras only after both predecessors fail, reset to Groq on each request, image fallback, missing configuration, and retained economical reasoning parameters.
+
+### Current feature status
+
+| Feature | Status | Notes |
+|---|---|---|
+| Ordered provider failover | IMPLEMENTED | Fixed configured priority; no round-robin scheduling. |
+| Current model configuration | IMPLEMENTED | Retained previously live-verified models. |
+
+### Known issues
+
+- Model prices charge input and output separately. Groq free-tier limits can cause fallback to paid/credit-backed providers. No application spending cap exists.
+
+### Next recommended task
+
+- Restart the backend with Ctrl+C followed by `npm start` to load ordered fallback.
+
+## 2026-10-06 — Provider model migration and rotation
+
+### Completed
+
+- Checked the current official Groq, Mistral, and Cerebras catalogs, capabilities, pricing, and deprecation documentation. Groq Llama 3.1 8B ceased free/developer availability on August 16, 2026; Qwen 3.6 ceased on September 14, explaining the stale configuration.
+- Updated example and runtime defaults to Groq `qwen/qwen3.8-27b`, Mistral `mistral-small-2603`, and Cerebras `gpt-oss-120b`. Updated local `backend/.env` model fields while preserving keys.
+- Selected Groq's current multilingual text/vision model, economical Mistral Small 4, and Cerebras's cheaper text model for the $5 balance. Cerebras vision remains opt-in via `CEREBRAS_VISION_MODEL=qwen-3.8-27b`.
+- Replaced fixed ordered failover with per-request round-robin starting providers and circular failover. Concurrent requests reserve turns before awaiting network responses. Translation and image rotation are independent; missing keys/models are skipped; each request attempts each eligible provider at most once.
+- Disabled Qwen/Small 4 reasoning and selected low GPT-OSS reasoning for short translation tasks. Preserved response validation, timeouts, safe failure, and metadata-only logs. Failed translation logs now include the model ID.
+- Documented model choices, verified sources, plan/balance considerations, rotation behavior, and restart instructions in `backend/README.md`.
+
+### Changed files
+
+- `.env.example`, local ignored `backend/.env` (model fields only).
+- `backend/src/services/{providerTranslation,providerImageAnalysis,providerPolicy}.js`.
+- `backend/src/server.js`, `backend/package.json`, `backend/README.md`.
+- `backend/tests/{translation,providerRotation}.test.js`.
+- `IMPLEMENTATION_STATUS.md`, `docs/implementation-plan.md`.
+
+### Tests run
+
+- `npm.cmd run check` in backend: PASS, all nine configured source files.
+- `npm.cmd test` in backend: PASS, 16 tests, including sequential/concurrent distribution, circular/all-provider failover, missing keys, supported request parameters, and image rotation/validation failure.
+- Live translation verification: sandbox network checks initially failed; approved network retry sent one short synthetic request to each provider. All three configured models returned valid Bangla output through the actual adapter. No keys or translated/page content were printed.
+- Live image-model verification: not performed; capabilities checked against official documentation.
+
+### Current feature status
+
+| Feature | Status | Notes |
+|---|---|---|
+| Provider rotation and safe failover | IMPLEMENTED | Per-request round-robin, independent text/vision rotations, concurrency regression tests. |
+| Current translation model configuration | IMPLEMENTED | All three defaults verified with live calls. |
+| AI translation and image feature completeness | PARTIAL | Prior functional gaps remain; this change addresses provider selection and configuration. |
+
+### Known issues
+
+- Groq Qwen is a preview model and may change. Current documented free limits are 30 RPM, 1,000 RPD, 8,000 TPM, and 200,000 TPD; rotation does not itself enforce these limits. Existing failover handles rate-limit failures.
+- Rotation balances primary request counts, not token cost or successful response counts. Cache hits never trigger providers; restarting the server resets rotation.
+- Mistral API spending depends on linked Studio credits/billing; Pro is not unlimited API usage. Promotional Cerebras $5 credit expires after 30 days. No new spending cap was implemented.
+
+### Next recommended task
+
+- Restart the running backend to load the updated code/model settings, then verify representative translation batches and image shortcuts in Chrome/NVDA.
+
+## 2026-10-06 — Source-based feature audit
+
+This audit supersedes the older inventory and feature matrix below. The August entry mixes the initial skeleton with later work and is retained as history. No application features were changed during this audit. `IMPLEMENTED` below describes an existing code capability, not verified Chrome/NVDA acceptance. Under the guide's full definition of done, user-facing features still need manual acceptance evidence.
+
+### Completed
+
+- Reviewed the requirements guide, implementation plan, documentation, extension runtime modules, backend routes/services/validators, tests, fixture, manifest, build scripts, and configuration example.
+- Verified the extension's current syntax checks, 14 unit tests, and production build.
+- Identified keyboard repair and on-request image interpretation absent from the old status matrix.
+- Distinguished translation from issue-based accessible-name generation and settings from first-run setup.
+
+### Current functional requirement status
+
+| Requirement | Status | Existing behavior and remaining work |
+|---|---|---|
+| FR-01 Initial DOM analysis | PARTIAL | Scanner inventories controls, forms, images, headings, landmarks, and live regions, filtering hidden/extension-owned elements. Fingerprints exist but are not unique for repeated anonymous elements; browser acceptance remains. |
+| FR-02 Dynamic DOM analysis | PARTIAL | A 150 ms queue collapses affected subtrees and guards owned/adapted mutations. Does not observe character-data changes; removal-only changes and later changes to adapted elements can be missed. Stress/browser tests remain. |
+| FR-03 Issue detection | PARTIAL | Detects missing names, form labels, image alt, main landmark, and selected keyboard problems. No comprehensive technical-error, unannounced-status, unreliable-landmark, or semantic-conflict detector. |
+| FR-04 Preserve valid information | PARTIAL | Assistant resolves existing names before nearby-label repair; image descriptions append to aria-describedby. Optional DOM translation still rewrites authored aria-label/alt/text. Preservation is not guaranteed across both modes. |
+| FR-05 Bangla accessible names | PARTIAL | Name resolver, local translation dictionary, adjacent-label association, and generic image label exist. No complete issue-based icon/context generation pipeline, accessible-name endpoint, or action-consistency validator. |
+| FR-06 Candidate semantic-role inference | PARTIAL | Hardcoded candidates are role=button and inline onclick on img/div/span. No weighted role inference, event-listener evidence, or conflict/nested-control validation. |
+| FR-07 Confidence-controlled semantic repair | PARTIAL | Adds reversible tabindex and Enter/Space click handlers. Uses fixed score 1; does not add role=button to div/span, implement 0.85/0.60 thresholds, suggest medium-confidence repairs, or prevent duplicate activation with existing handlers/key repeat. |
+| FR-08 Dynamic announcements/form errors | PARTIAL | Polite/assertive extension live regions serve form, image, repair, and failure messages. No page-update classifier for completion, loading, authentication/security, or important status changes; no general grouping/rate limiting. |
+| FR-09 Understandable Bangla form guidance | PARTIAL | Native invalid/blur/input handling, required/email/length/range templates, selected password patterns, coverage helper, descriptions, deduplication, and temporary native validation messages exist without reading field values. requiresAi is calculated but not wired to a service; custom/free-text errors and complex patterns are not fully explained. Partial regex recognition can incorrectly count a whole pattern as covered. |
+| FR-10 Image interpretation | PARTIAL | Focus/hover plus Alt+Shift+O (OCR) or Alt+Shift+D (description) sends a selected image to a vision provider and attaches/announces Bangla output. Empty alt/presentation are skipped for automatic focus preparation. No separate Tesseract/local OCR adapter, full tracking/tiny/duplicate classification, or detail levels. Shortcut dispatch does not repeat decorative classification. Live providers unverified. |
+| FR-11 Output detail preference | PARTIAL | concise/balanced/detailed affects provider translation, with optional per-request override. Images always use fixed prompts; form guidance/announcements have no detail resolver. No shared brief/standard/detailed preference across tasks. |
+| FR-12 Navigation support | PARTIAL | Heading/landmark/form inventory is groundwork. No user-facing region list, generated skip links, safe region focus commands, or missing-landmark repair. |
+| FR-13 Limited Bangla voice commands | DEFERRED | No microphone, transcription adapter, allowed intent mapping, or voice UI. Lower priority under the guide. |
+| FR-14 Page/region summary | NOT_STARTED | No sanitized summary collector, summary service, endpoint, or user command. |
+| FR-15 Noise classification/reduction | NOT_STARTED | No normalized noise score, protected-region-aware prioritization, or low-priority navigation controls. |
+| FR-16 Protected content | NOT_STARTED | No explicit security/payment/consent/legal/task-critical protection policy. Noise suppression is absent, but that is not an implemented protection classifier. |
+| FR-17 Optional accessible setup | NOT_STARTED | Native-control settings page exists; no skippable first-run setup flow. |
+| FR-18 Separate context layers | PARTIAL | Content-script state, service-worker cache, and local saved settings exist. No storage.session context, structured task/profile stores, or required six-level context-priority resolver. |
+| FR-19 Confirmation before long-term storage | NOT_STARTED | No interaction evidence, candidate preference, confirmation dialog, cooldown, session-only choice, or do-not-ask-again behavior. Explicit settings saves are the only preference mechanism. |
+| FR-20 Preference management | PARTIAL | Users can review/edit a small set of local settings. No selected/all reset, profile deletion, or evidence deletion. |
+| FR-21 Audit metadata | PARTIAL | Attribute/event records contain reason, fixed rule score, validation status, and rollback functions; provider logs expose model/provider/timing metadata. No complete linked audit record, prompt/rule/validator versions, user feedback, or retained rollback status. |
+
+### Supporting implementation inventory
+
+- `IMPLEMENTED` in code: Manifest V3 shell, content-script loading, background worker, popup translation toggle, options page, phrase/pattern/full-coverage dictionary translation, translation batching/cache/provider failover, attribute/event rollback primitives, live-region channels, and basic local settings persistence.
+- `PARTIAL`: Express API, AI validation/sanitization, privacy guarantees, runtime cancellation, reason-code coverage, accessible UI localization, and automated acceptance coverage.
+- `NOT_STARTED`: PostgreSQL schema/migrations/repositories, profile/evidence/feedback APIs, versioned prompt files, speech integration, deployment/HTTPS configuration, request rate limiting, formal linting, CI, and recorded Windows/Chrome/NVDA compatibility results.
+- `ai/` and `database/` remain README scaffolding; working AI prompts and adapters instead live inside `backend/src/services/`.
+
+### API inventory
+
+Present: `GET /health`, `POST /api/v1/assist/translation`, and `POST /api/v1/assist/image-analysis` (OCR and description modes).
+
+Absent: `/api/v1/assist/accessible-name`, `/api/v1/assist/form-message`, `/api/v1/assist/page-summary`, profile GET/PATCH/DELETE, preferences/evidence POST, and feedback POST. Image analysis is the existing equivalent of the proposed image-description route; its different name alone is not a missing capability.
+
+### Non-functional gaps and known issues
+
+- Settings use semantic native controls and Bangla status messages, but popup controls/status remain English. Manual keyboard/NVDA results and exact tested platform versions are absent.
+- Backend validates bounded inputs and Bangla/JSON outputs, but does not prove preservation of numbers, constraints, or supported actions. Image validation is particularly minimal. Prompts are inline and unversioned.
+- Translation sanitization removes control characters and bounds strings; it is not sensitive-data redaction. Page text may contain personal/payment information, and explicitly selected images may contain private information. The whole-page translator does not consistently exclude hidden/owned/sensitive descendant regions.
+- Image requests have no content-script generation/cancellation guard. A late response can recreate description nodes after assistant disablement. Therefore complete asynchronous rollback is not established.
+- Disabling form guidance removes its description nodes but does not roll back their registry-held aria-describedby references until the whole assistant is disabled.
+- The mutation guard skips all subsequent changes on adapted targets; fingerprints can collide; announcements count image/keyboard repairs as form-label repairs.
+- The server is local HTTP, defaults to wildcard CORS, has no authentication/rate limiting, and exits when no translation provider key is configured. Deterministic extension functions can still operate independently.
+- `.env.example` defines provider order, keys/models, vision models, port, and origin. No live provider requests or secret inspection were performed.
+- Existing tests use Node's built-in test runner, mainly pure functions/fake DOM objects. One HTML fixture and a manual checklist exist; no automated Chrome integration or recorded NVDA results. Syntax checks are not a lint suite.
+
+### Tests run
+
+- Extension `npm.cmd run check`: PASS, 15 JavaScript files.
+- Extension `npm.cmd test`: PASS, 14 tests, 0 failures.
+- Extension `npm.cmd run build`: PASS, generated `extension/dist`.
+- Backend `npm.cmd run check`: PASS, all eight configured source files.
+- Backend `npm.cmd test`: initially blocked by missing Express; after dependency installation, PASS, 9 tests, 0 failures.
+- Backend `npm.cmd install --ignore-scripts`: sandbox download failed with EACCES; approved retry succeeded, installing 67 packages. npm reported two dependency vulnerabilities (one moderate, one critical); advisories were not investigated or fixed in this feature audit.
+- `git diff --check`: PASS.
+- Chrome/NVDA and live provider verification: not performed.
+
+### Changed files
+
+- `IMPLEMENTATION_STATUS.md` (current source-based audit).
+- `docs/implementation-plan.md` (current phase corrections and recommended sequence).
+- Generated ignored extension build output; backend dependency installation attempted for verification.
+
+### Next recommended task
+
+1. Close preservation, keyboard duplicate-activation, form cleanup/coverage, and asynchronous image rollback gaps.
+2. Complete missing-name generation and confidence-scored role repair with meaningful fixture coverage.
+3. Verify the existing vertical slices in Chrome/NVDA and with configured live providers.
+4. Implement navigation, then summaries/image detail levels, then context and confirmed preference management.
+5. Add persistence, feedback, noise protection, and optional voice according to the guide's priorities.
+
 ## 2026-08-01
 
 ### Completed

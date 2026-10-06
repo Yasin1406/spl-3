@@ -19,5 +19,5 @@ const app = createApp({
 });
 
 app.listen(port, "127.0.0.1", () => {
-  console.log(`Bangla accessibility backend listening on http://127.0.0.1:${port}; providers: ${providers.map((provider) => provider.name).join(" -> ")}; vision: ${visionProviders.map((provider) => provider.name).join(" -> ") || "not configured"}`);
+  console.log(`Bangla accessibility backend listening on http://127.0.0.1:${port}; scheduling: ordered failover; providers: ${providers.map((provider) => `${provider.name} (${provider.model})`).join(" -> ")}; vision: ${visionProviders.map((provider) => `${provider.name} (${provider.model})`).join(" -> ") || "not configured"}`);
 });

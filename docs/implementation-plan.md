@@ -2,6 +2,38 @@
 
 This plan maps `CODEX_IMPLEMENTATION_README_UPDATED.md` onto the audited repository. The goal is a narrow, testable end-to-end prototype. Existing working translation code will be preserved until its replacement is verified.
 
+## 2026-10-06 latest provider preference
+
+- Restored fixed ordered fallback at the user's request: Groq first, Mistral only on failure, Cerebras only if both fail. This supersedes the historical round-robin follow-up below for translation and image requests.
+- Kept current model defaults and economical reasoning controls. Syntax checks and all 17 backend tests pass, including repeated/concurrent Groq-first behavior and Cerebras fallback.
+- Restart the running backend to activate this scheduling change.
+
+## 2026-10-06 provider follow-up
+
+- Completed current-model migration for Groq/Mistral/Cerebras and replaced fixed ordered provider selection with per-request round-robin plus circular failover for translation and configured image models.
+- Added concurrency, rotation, model-parameter, and image failover regressions. Backend syntax checks and all 16 tests pass; one live synthetic translation per provider passed validation.
+- Updated `.env.example`, local backend model fields, and backend setup/model-choice documentation. Secrets remain backend-only. A running server must restart to pick up the change.
+- Phase 2/5/9 remain PARTIAL: this provider fix does not complete the unrelated accessibility, image classification/detail, persistence, and manual acceptance tasks below.
+
+## 2026-10-06 audit correction
+
+The source-based audit in `IMPLEMENTATION_STATUS.md` supersedes stale completion claims below. No runtime implementation was changed during this audit.
+
+| Phase | Current status | Correction / next work |
+|---|---|---|
+| 0 Audit/stabilization | PARTIAL | Current audit, extension verification, and 9 backend tests pass; real linting, dependency advisory review, and browser acceptance remain. `.env.example` and backend package already exist. |
+| 1 Extension foundation | PARTIAL | Scanner, observer, registry, live regions, settings, worker, fixture, and 14 unit tests exist. Chrome/NVDA acceptance and observer coverage remain. |
+| 2 Accessible names/preservation | PARTIAL | Translation fallback and name resolution exist; task-specific missing-name generation, icon/context fallback, semantic validation, and preservation across modes remain. |
+| 3 Semantic repair/keyboard | PARTIAL | Keyboard repair exists, contrary to the older NOT_STARTED label. Role application, deterministic weighted score/thresholds, conflict checks, duplicate prevention, and suggestions remain. |
+| 4 Forms | PARTIAL | Native Bangla guidance exists. Wire AI fallback, validate whole-pattern coverage, support authored errors, and clean up aria-describedby on feature disable. |
+| 5 Visual interpretation | PARTIAL | Explicit OCR/description vision requests and accessible delivery exist, contrary to the older NOT_STARTED label. Full classification, detail levels, cancellation, and live verification remain. |
+| 6 Navigation/summaries | PARTIAL | Inventories exist; region navigator, skip links, focus manager, landmark repair, and summary pipeline are absent. |
+| 7 Context/personalization | PARTIAL | Basic local settings and runtime memory exist. Structured page/session/profile context, priority resolver, first-run flow, evidence/confirmation, and reset/delete remain. |
+| 8 Dynamic/noise/voice | PARTIAL | Form/image/assistant announcements exist; relevant webpage update classifier and noise protection are absent. Voice remains DEFERRED. |
+| 9 Backend/persistence/evaluation | PARTIAL | Express translation/image routes, provider adapters, and validators exist. Other assist/profile/evidence/feedback APIs, PostgreSQL, versioning, deployment, and acceptance evaluation remain. |
+
+Recommended order: correct preservation/rollback/keyboard/form-coverage gaps; complete names and scored semantic repair; manually verify existing slices; add navigation and summaries; extend image detail; implement confirmed personalization and persistence; add protected noise handling and optional voice.
+
 ## Baseline and implementation approach
 
 - Keep the current dependency-free JavaScript extension for Phase 1 instead of introducing a framework or broad rewrite.
