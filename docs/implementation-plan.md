@@ -2,6 +2,19 @@
 
 This plan maps `CODEX_IMPLEMENTATION_README_UPDATED.md` onto the audited repository. The goal is a narrow, testable end-to-end prototype. Existing working translation code will be preserved until its replacement is verified.
 
+## 2026-10-07 report body focus follow-up
+
+- Extended reversible Tab focus to meaningful reading blocks inside article/main regions, including paragraphs with inline links, quotations, list items, captions, and plain text divs. Preserves native semantics/non-negative tabindex, restores negative values on disablement, and excludes duplicate layout wrappers and hidden/editable/interactive content.
+- Added reading-block inventory/diagnostics and dynamic text insertion/change scanning. Extended the Chrome article regression to cover original/translated body focus, dynamic blocks, exclusions, and rollback.
+- Extension checks, all 22 tests, and production build pass. Actual page/NVDA verification remains manual; full region navigation/skip links remain pending.
+
+## 2026-10-07 article focus and translation follow-up
+
+- Implemented reversible Tab focus for visible native/ARIA headings, including negative-tabindex headings. Preserves existing non-negative tabindex and semantics, restores original negative values on disablement, and handles dynamic headings.
+- Fixed the 500-character exclusion with atomic text chunking/reassembly. Translation now drains sequential batches bounded by source characters; provider output budgets scale with source size. Complete response validation, stale-result guards, pending cleanup, and dynamic text observation prevent silently skipped/stuck content and late application after disablement.
+- Extension syntax checks and all 22 tests pass, including a headless Chrome article integration test. Backend checks and all 19 tests pass. Rebuilt `extension/dist`.
+- Verify the user's BBC article with the running backend and NVDA. These fixes do not complete the region list/skip links, confidence-scored semantic repair, or other outstanding phases below.
+
 ## 2026-10-07 local image follow-up
 
 - Added image decoding, resizing, and PNG/JPEG normalization before upload so larger local photos and decodable files with unrecognized MIME types can reach the backend within its limits.

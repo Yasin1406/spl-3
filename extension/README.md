@@ -43,6 +43,14 @@ When DOM Translation is enabled, exact phrases, recognized patterns, and fully c
 
 Start the backend first by following `../backend/README.md`. Provider API keys must never be added to extension source, settings, or the built `dist` directory.
 
+Long paragraphs are split into items of at most 500 characters and reassembled only after all parts succeed. Sequential batches contain at most 20 items and 1,200 source characters. Existing links and page structure remain intact. Dynamic text updates are translated too; disabling translation clears pending work and restores original text. If a provider request fails, the affected original text remains and the assistant announces that some text could not be translated. Toggle translation off and on to retry.
+
+## Heading and article content focus
+
+While the accessibility assistant is enabled, visible, non-empty headings gain `tabindex="0"` so Tab and Shift+Tab can reach article titles and section headings. This also makes headings with negative tabindex reachable. Headings keep their native/ARIA semantics and existing non-negative tabindex values. Inserted headings are handled automatically; disabling the assistant removes its temporary focus adaptations and restores original negative tabindex values.
+
+Report/article paragraphs, quotations, list items, captions, preformatted blocks, and plain text blocks inside article/main regions also gain Tab focus. Inline links remain independently usable. The assistant focuses the reading blocks rather than layout containers repeating the same content; hidden/inert, editable, navigation, form, and extension-owned content is excluded. Existing non-negative tabindex values remain intact, original negative values return on disablement, and newly inserted or newly populated reading blocks are handled automatically. Content focus remains available when translation is switched off while the assistant stays enabled.
+
 ## Image descriptions and OCR
 
 Focus or hover an image and press `Alt+Shift+D` for a Bangla description or `Alt+Shift+O` to read its text. Explicit image focus takes priority over hover. Large images are resized before upload (1600 pixels on the longest edge for descriptions, 2048 for OCR); decodable unsupported formats are converted to PNG or JPEG. Source files above 32 MB are rejected, and uploaded image bytes remain limited to 4 MB.
@@ -64,6 +72,8 @@ Run automated verification with:
 npm.cmd run check
 npm.cmd test
 ```
+
+The article integration test uses an installed Chrome browser with a temporary headless profile and mocked translation responses. It skips when Chrome is unavailable. Set `BAA_CHROME_PATH` to use a different Chrome executable. It verifies actual DOM focus, long-article translation, inline links, dynamic changes, stale responses, and rollback; NVDA and live-provider checks remain manual.
 
 Then load this folder in Chrome:
 

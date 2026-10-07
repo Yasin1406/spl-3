@@ -31,5 +31,34 @@
     return repaired;
   }
 
-  globalScope.BAA_KEYBOARD_REPAIR = Object.freeze({ isHighConfidenceClickable, repair });
+  function prepareHeadings(headings, registry) {
+    const core = globalScope.BAA_ACCESSIBILITY_CORE;
+    let repaired = 0;
+    for (const heading of headings || []) {
+      if (!core.isElementVisible(heading) || core.isExtensionOwned(heading) ||
+          !core.normalizeText(heading.textContent)) continue;
+      if (heading.hasAttribute("tabindex") && Number(heading.getAttribute("tabindex")) >= 0) continue;
+      if (registry.applyAttribute({
+        element: heading, attribute: "tabindex", value: "0",
+        reasonCode: reasons.HEADING_KEYBOARD_ACCESS_ADDED, ruleScore: 1
+      })) repaired += 1;
+    }
+    return repaired;
+  }
+
+  function prepareReadingBlocks(blocks, registry) {
+    const core = globalScope.BAA_ACCESSIBILITY_CORE;
+    let repaired = 0;
+    for (const block of blocks || []) {
+      if (!core.isReadingBlock(block) || !core.isElementVisible(block) || core.isExtensionOwned(block)) continue;
+      if (block.hasAttribute("tabindex") && Number(block.getAttribute("tabindex")) >= 0) continue;
+      if (registry.applyAttribute({
+        element: block, attribute: "tabindex", value: "0",
+        reasonCode: reasons.CONTENT_KEYBOARD_ACCESS_ADDED, ruleScore: 1
+      })) repaired += 1;
+    }
+    return repaired;
+  }
+
+  globalScope.BAA_KEYBOARD_REPAIR = Object.freeze({ isHighConfidenceClickable, repair, prepareHeadings, prepareReadingBlocks });
 })(globalThis);

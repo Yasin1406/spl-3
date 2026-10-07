@@ -2,6 +2,55 @@
 
 Status values: `NOT_STARTED`, `PARTIAL`, `IMPLEMENTED`, `BLOCKED`, `DEFERRED`.
 
+## 2026-10-07 — Report body keyboard focus
+
+### Completed
+
+- Extended reversible Tab/Shift+Tab focus from headings to visible reading blocks inside article/main/ARIA article regions: paragraphs, list items, quotations, captions, preformatted blocks, ARIA paragraphs, and plain text divs.
+- Preserved inline link operability and native content semantics. Existing non-negative tabindex remains intact; negative values are temporarily promoted and restored on assistant disablement. Translation disablement keeps content focus available while the assistant remains enabled.
+- Excluded hidden/inert, editable, navigation, form, interactive-ancestor, extension-owned, empty, and duplicate enclosing blocks.
+- Added scanner reading-block inventory, `CONTENT_KEYBOARD_ACCESS_ADDED`, and `contentFocusRepairCount`. Accessibility observation now handles text changes and text insertion into previously empty blocks as well as inserted paragraphs.
+- Extended the real Chrome regression/fixture to verify original and translated paragraph focus, long/link-containing content, quotations/list items/captions/plain divs, exclusions, dynamic content, authored focus choices, and rollback.
+
+### Changed files and verification
+
+- Extension: `accessibilityCore.js`, `scanner.js`, `keyboardRepair.js`, `reasonCodes.js`, `contentScript.js`, article browser regression, and README.
+- Article fixture/checklist, implementation plan, and status updated; `extension/dist` rebuilt.
+- Extension syntax check: PASS, 15 JavaScript files. Tests: PASS, all 22, including headless Chrome 154.0.8037.98. Build and `git diff --check`: PASS.
+- Actual BBC page and NVDA acceptance remain manual. This adds report-body focus; broader region navigation/skip links remain unfinished.
+
+## 2026-10-07 — Article heading focus and complete translation
+
+### Completed
+
+- Visible, non-empty native/ARIA headings now receive reversible `tabindex="0"` while the assistant is enabled, including headings originally outside Tab order with negative tabindex. Existing non-negative tabindex and heading semantics are preserved; hidden, inert, and extension-owned headings are excluded. Original negative values return on disablement. Dynamic headings are handled by affected-region scans.
+- Fixed the translator's silent exclusion of text longer than 500 characters. Long text/attributes are split at sentence/word boundaries into bounded items, with original whitespace retained. A text node changes only after every chunk succeeds; links and other DOM structure remain intact.
+- Translation batches now respect a 1,200-character source budget as well as the 20-item limit. Requests drain sequentially; the worker also subdivides oversized aggregate batches. Provider output tokens scale with source size instead of a fixed 1,200-token budget. Groq/Mistral/Cerebras priority is unchanged.
+- Worker responses must include every requested ID exactly once before caching/application. Backend validators reject oversized input/output instead of silently truncating it, and allow appropriately bounded Bangla expansion beyond 1,000 characters.
+- Added character-data observation for publisher updates, stale-result guards, pending-group cleanup on disablement, and hidden/extension-owned/editable-region exclusion. Translation failure retains original content and announces that some text could not be translated.
+- Corrected the repair announcement and added heading-focus counts to the scan diagnostic.
+
+### Changed files
+
+- Extension: `accessibilityCore.js`, `keyboardRepair.js`, `reasonCodes.js`, `contentScript.js`, `domTranslator.js`, and background `serviceWorker.js`.
+- Backend: translation provider service, validator, and regression tests.
+- Added `extension/tests/articleBrowser.test.js`, `extension/tests/translationBatch.test.js`, and `tests/fixtures/article-accessibility.html`.
+- Updated extension/fixture documentation and implementation plan; rebuilt `extension/dist`.
+
+### Tests run
+
+- Extension syntax check: PASS, 15 JavaScript files.
+- Extension tests: PASS, 22 tests, including headless Chrome 154.0.8037.98 with real DOM/MutationObserver behavior and mocked provider responses.
+- Chrome regression covers 35 extra long paragraphs, inline links, paragraph tails, atomic chunk reassembly, heading focus/preservation, dynamic insertion/text updates, stale responses, complete original restoration, and disablement during an outstanding request.
+- Backend syntax check and tests: PASS, 19 tests, including output budgeting, oversized input rejection, and preservation of longer Bangla output.
+- `git diff --check`: PASS. Production extension build: PASS.
+- Chrome initially could not start inside the managed execution sandbox; the approved headless retry with a temporary profile passed.
+
+### Current feature status and remaining verification
+
+- Heading focus and long-article chunking/batching are implemented and regression-tested. FR-05/FR-07/FR-12 remain PARTIAL because broader accessible-name generation, scored semantic repair, and the region navigator/skip links remain unfinished.
+- The supplied BBC URL could not be fetched by the browsing tool. No live provider article request or NVDA test was performed; verify the actual page after restarting the backend, reloading the extension, and refreshing the tab.
+
 ## 2026-10-06 — Restore ordered provider fallback
 
 ### Completed

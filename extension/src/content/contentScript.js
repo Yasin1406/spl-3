@@ -95,6 +95,10 @@
     let repairs = 0;
     const keyboardRepairs = keyboardRepair.repair(root, registry);
     repairs += keyboardRepairs;
+    const headingFocusRepairs = keyboardRepair.prepareHeadings(result.inventory.headings, registry);
+    repairs += headingFocusRepairs;
+    const contentFocusRepairs = keyboardRepair.prepareReadingBlocks(result.inventory.readingBlocks, registry);
+    repairs += contentFocusRepairs;
     const imageFocusRepairs = imageAssistantFactory.prepareImages(result.inventory.images, registry, reasons);
     repairs += imageFocusRepairs;
     const unlabeledControls = result.issues.filter((entry) => entry.reasonCode === reasons.FORM_LABEL_MISSING);
@@ -123,12 +127,14 @@
       else labelRecord?.rollback();
     }
 
-    if (repairs > 0) liveRegion?.announce(`${repairs}টি ফর্ম কন্ট্রোলের লেবেল সংযুক্ত করা হয়েছে।`);
+    if (repairs > 0) liveRegion?.announce(`${repairs}টি উপাদানের কীবোর্ড অ্যাক্সেস বা লেবেল উন্নত করা হয়েছে।`);
     globalThis.BAA_LAST_SCAN = {
       issueCounts: countReasons(result.issues),
       inventoryCounts: Object.fromEntries(Object.entries(result.inventory).map(([key, values]) => [key, values.length])),
       repairCount: repairs,
       keyboardRepairCount: keyboardRepairs,
+      headingFocusRepairCount: headingFocusRepairs,
+      contentFocusRepairCount: contentFocusRepairs,
       imageFocusRepairCount: imageFocusRepairs
     };
   }
@@ -137,10 +143,13 @@
     const observer = new MutationObserver((mutations) => {
       for (const mutation of mutations) {
         const target = mutation.target instanceof Element ? mutation.target : mutation.target.parentElement;
-        if (!target || target.closest("[data-baa-owned='true']") || target.hasAttribute("data-baa-adapted")) continue;
+        if (!target || target.closest("[data-baa-owned='true']")) continue;
+        // Ignore our attribute repairs, but still scan children inserted into repaired headings/controls.
+        if (mutation.type === "attributes" && target.hasAttribute("data-baa-adapted")) continue;
         if (mutation.type === "childList") {
           for (const node of mutation.addedNodes) {
             if (node.nodeType === Node.ELEMENT_NODE && !node.closest?.("[data-baa-owned='true']")) pendingRoots.add(node);
+            if (node.nodeType === Node.TEXT_NODE) pendingRoots.add(target);
           }
         } else {
           pendingRoots.add(target);
@@ -148,7 +157,7 @@
       }
       scheduleAffectedScan();
     });
-    observer.observe(document.documentElement, { childList: true, subtree: true, attributes: true, attributeFilter: ["aria-label", "aria-labelledby", "alt", "hidden", "role", "tabindex"] });
+    observer.observe(document.documentElement, { childList: true, characterData: true, subtree: true, attributes: true, attributeFilter: ["aria-label", "aria-labelledby", "alt", "hidden", "role", "tabindex"] });
     return observer;
   }
 

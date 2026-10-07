@@ -30,6 +30,16 @@
   ].join(",");
 
   const LIVE_REGION_SELECTOR = "[aria-live], [role='alert'], [role='status'], [role='log']";
+  const READING_BLOCK_SELECTOR = "p, li, blockquote, figcaption, pre, [role='paragraph'], div";
+  const READING_REGION_SELECTOR = "article, main, [role='main'], [role='article'], [itemprop='articleBody']";
+  const READING_EXCLUDED_SELECTOR = "nav, [role='navigation'], form, [role='form'], [role='search'], button, a[href], input, select, textarea, summary, [role='button'], [role='link'], [role='heading'], [contenteditable]:not([contenteditable='false'])";
+
+  function isReadingBlock(element) {
+    if (!element?.closest?.(READING_REGION_SELECTOR) || element.closest(READING_EXCLUDED_SELECTOR)) return false;
+    // Focus the actual reading blocks rather than containers repeating their descendants' text.
+    if (element.querySelector?.(`${READING_BLOCK_SELECTOR}, h1, h2, h3, h4, h5, h6, section, article, ul, ol, table, form`)) return false;
+    return Boolean(normalizeText(element.textContent));
+  }
 
   function normalizeText(value) {
     return String(value || "").replace(/\s+/g, " ").trim();
@@ -44,8 +54,11 @@
     if (element.closest?.("[hidden], [inert], [aria-hidden='true']")) return false;
     const view = element.ownerDocument?.defaultView;
     if (!view?.getComputedStyle) return true;
-    const style = view.getComputedStyle(element);
-    return style.display !== "none" && style.visibility !== "hidden";
+    for (let ancestor = element; ancestor; ancestor = ancestor.parentElement) {
+      const style = view.getComputedStyle(ancestor);
+      if (style.display === "none" || style.visibility === "hidden") return false;
+    }
+    return true;
   }
 
   function textFromReferences(element, attributeName) {
@@ -108,9 +121,11 @@
     INTERACTIVE_SELECTOR,
     LANDMARK_SELECTOR,
     LIVE_REGION_SELECTOR,
+    READING_BLOCK_SELECTOR,
     accessibleNameSource,
     isElementVisible,
     isExtensionOwned,
+    isReadingBlock,
     normalizeText,
     stableFingerprint
   });

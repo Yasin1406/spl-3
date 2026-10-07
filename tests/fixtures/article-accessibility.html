@@ -1,0 +1,30 @@
+<!doctype html>
+<html lang="en">
+<meta charset="utf-8">
+<title>Article focus and translation fixture</title>
+<style>body { max-width: 48rem; margin: 2rem auto; font: 18px/1.6 sans-serif; } :focus-visible { outline: 3px solid #1456aa; outline-offset: 4px; }</style>
+<main>
+  <article>
+    <h1 id="headline">Students ask for safer journeys to school</h1>
+    <p id="intro">Students and parents met local officials on Wednesday to discuss safer journeys to school. The meeting included teachers, community volunteers and representatives from nearby neighbourhoods.</p>
+    <h2 id="details">What the community requested</h2>
+    <p id="long-paragraph">The community requested better lighting near the school entrance, clearer signs at busy crossings, and regular maintenance of the paths used by younger children. Teachers explained that these measures would help families throughout the year, especially during the rainy season when some paths become difficult to use. Local officials said they would publish a schedule after inspecting the affected roads and speaking to transport workers. Parents asked for the schedule to include clear dates, contact details and a way to report unfinished work. The final decision will be announced after the next public meeting.</p>
+    <p id="linked-paragraph">Families can read <a id="article-link" href="#details"><strong>the meeting details</strong></a> before sending their comments. This text after the link must also be translated.</p>
+    <h2 id="authored-focus" tabindex="-1">An existing focus choice</h2>
+    <h2 id="positive-focus" tabindex="2">An existing position in Tab order</h2>
+    <p id="negative-content" tabindex="-1">A paragraph originally outside Tab order.</p>
+    <p id="positive-content" tabindex="3">A paragraph already in Tab order.</p>
+    <blockquote id="quote-wrapper"><p id="quote-content">A quotation containing its own paragraph.</p></blockquote>
+    <ul><li id="list-content">A report recommendation in a list.</li></ul>
+    <figure><figcaption id="caption-content">A caption explaining an illustration.</figcaption></figure>
+    <div id="plain-content">A reading block built using <strong>inline text</strong>.</div>
+    <div id="content-wrapper"><p id="wrapped-content">A paragraph inside a layout wrapper.</p></div>
+    <div id="editable-content" contenteditable="true">Editable author text.</div>
+    <div inert><div id="inert-content">Inert report text.</div></div>
+    <nav><p id="navigation-content">Article navigation text.</p></nav>
+    <form><p id="form-content">Form instructions.</p></form>
+    <p id="empty-content"></p>
+    <div hidden><h2 id="hidden-heading">A hidden heading</h2><p>Hidden article text should remain unchanged.</p></div>
+  </article>
+</main>
+</html>

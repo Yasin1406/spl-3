@@ -10,6 +10,7 @@
       formControls: collect(root, "input:not([type='hidden']), select, textarea"),
       images: collect(root, "img"),
       headings: collect(root, "h1, h2, h3, h4, h5, h6, [role='heading']"),
+      readingBlocks: collect(root, core.READING_BLOCK_SELECTOR, core.isReadingBlock),
       landmarks: collect(root, core.LANDMARK_SELECTOR),
       liveRegions: collect(root, core.LIVE_REGION_SELECTOR)
     };
@@ -48,11 +49,11 @@
     return { inventory, issues };
   }
 
-  function collect(root, selector) {
+  function collect(root, selector, predicate = () => true) {
     const matches = [];
     if (root?.matches?.(selector)) matches.push(root);
     for (const element of root?.querySelectorAll?.(selector) || []) matches.push(element);
-    return matches.filter((element) => core.isElementVisible(element) && !core.isExtensionOwned(element));
+    return matches.filter((element) => predicate(element) && core.isElementVisible(element) && !core.isExtensionOwned(element));
   }
 
   function issue(element, reasonCode, severity) {
