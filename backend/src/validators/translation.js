@@ -9,9 +9,9 @@ export function validateTranslationRequest(body) {
   const ids = new Set();
   return body.items.map((item) => {
     const id = cleanString(item?.id, 80);
-    const text = cleanString(item?.text, 500);
+    const text = cleanString(item?.text, 501);
     const context = cleanString(item?.context || "page text", 160);
-    if (!id || !text || ids.has(id)) throw requestError("INVALID_TRANSLATION_ITEM");
+    if (!id || !text || text.length > 500 || ids.has(id)) throw requestError("INVALID_TRANSLATION_ITEM");
     ids.add(id);
     return { id, text, context };
   });
@@ -29,11 +29,12 @@ export function validateProviderTranslations(payload, sourceItems) {
   const seen = new Set();
   const translations = payload.translations.map((item) => {
     const id = cleanString(item?.id, 80);
-    const translatedText = cleanString(item?.translatedText, 1000);
+    const maxLength = Math.max(1000, (sourceById.get(id)?.text.length || 0) * 5);
+    const translatedText = cleanString(item?.translatedText, maxLength + 1);
     if (!sourceById.has(id) || seen.has(id) || !translatedText || !BANGLA_PATTERN.test(translatedText) || PROHIBITED_PATTERN.test(translatedText)) {
       throw serviceError("INVALID_AI_RESPONSE");
     }
-    if (translatedText.length > Math.max(1000, sourceById.get(id).text.length * 5)) throw serviceError("INVALID_AI_RESPONSE");
+    if (translatedText.length > maxLength) throw serviceError("INVALID_AI_RESPONSE");
     seen.add(id);
     return { id, translatedText };
   });

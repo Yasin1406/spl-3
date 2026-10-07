@@ -19,6 +19,7 @@
   ];
   const pendingAiTargets = new Map();
   let aiSequence = 0;
+  const EXCLUDED_SELECTOR = "script, style, noscript, code, pre, textarea, input, select, option, [hidden], [inert], [aria-hidden='true'], [data-baa-owned='true'], [contenteditable]:not([contenteditable='false'])";
 
   function translatePage(root = document.body) {
     if (!root) return [];
@@ -26,6 +27,7 @@
   }
 
   function restorePage(root = document.body) {
+    discardAiCandidates([...pendingAiTargets.keys()]);
     if (!root) return;
     restoreTextNodes(root);
     restoreAttributes(root);
@@ -38,7 +40,7 @@
       {
         acceptNode(node) {
           if (!node.parentElement) return NodeFilter.FILTER_REJECT;
-          if (SKIPPED_TAGS.has(node.parentElement.tagName)) return NodeFilter.FILTER_REJECT;
+          if (isExcluded(node.parentElement)) return NodeFilter.FILTER_REJECT;
           if (!node.nodeValue || !node.nodeValue.trim()) return NodeFilter.FILTER_REJECT;
           return NodeFilter.FILTER_ACCEPT;
         }
@@ -50,11 +52,21 @@
       textNodes.push(walker.currentNode);
     }
 
-    return textNodes.map(translateTextNode).filter(Boolean);
+    return textNodes.flatMap(translateTextNode);
   }
 
   function translateTextNode(node) {
-    if (node.__baaTranslated || node.__baaAiPendingId) return null;
+    if (node.__baaTranslated) {
+      if (node.nodeValue === node.__baaAppliedText) return [];
+      // A site updated this text after translation. Treat the new authored text as a fresh source.
+      node.__baaTranslated = false;
+      node.__baaOriginalText = "";
+    }
+    if (node.__baaAiPendingId) {
+      const pending = pendingAiTargets.get(node.__baaAiPendingId);
+      if (pending?.group.originalText === node.nodeValue) return [];
+      discardAiCandidates([node.__baaAiPendingId]);
+    }
 
     const originalText = node.nodeValue;
     const translatedText = translateText(originalText);
@@ -63,10 +75,11 @@
       node.__baaOriginalText = originalText;
       node.nodeValue = translatedText;
       node.__baaTranslated = true;
-      return null;
+      node.__baaAppliedText = translatedText;
+      return [];
     }
 
-    return createAiCandidate({ kind: "text", target: node, text: originalText, context: node.parentElement?.tagName?.toLowerCase() || "page text" });
+    return createAiCandidates({ kind: "text", target: node, text: originalText, context: node.parentElement?.tagName?.toLowerCase() || "page text" });
   }
 
   function restoreTextNodes(root) {
@@ -87,10 +100,11 @@
     }
 
     for (const node of textNodes) {
-      node.nodeValue = node.__baaOriginalText;
+      if (node.nodeValue === node.__baaAppliedText) node.nodeValue = node.__baaOriginalText;
       node.__baaTranslated = false;
       node.__baaOriginalText = "";
       node.__baaAiPendingId = "";
+      node.__baaAppliedText = "";
     }
   }
 
@@ -99,7 +113,7 @@
 
     const candidates = [];
     for (const element of elements) {
-      if (SKIPPED_TAGS.has(element.tagName)) continue;
+      if (isExcluded(element)) continue;
 
       for (const attributeName of TRANSLATABLE_ATTRIBUTES) {
         const value = element.getAttribute(attributeName);
@@ -112,8 +126,7 @@
           element.setAttribute(attributeName, translatedValue);
           element.dataset[`baa${toDatasetSuffix(attributeName)}Translated`] = "true";
         } else {
-          const candidate = createAiCandidate({ kind: "attribute", target: element, attributeName, text: value, context: `${element.tagName.toLowerCase()} ${attributeName}` });
-          if (candidate) candidates.push(candidate);
+          candidates.push(...createAiCandidates({ kind: "attribute", target: element, attributeName, text: value, context: `${element.tagName.toLowerCase()} ${attributeName}` }));
         }
       }
     }
@@ -232,14 +245,56 @@
       .join("");
   }
 
-  function createAiCandidate({ kind, target, attributeName = "", text, context }) {
-    const normalizedText = String(text || "").trim();
-    if (!/[A-Za-z]/.test(normalizedText) || normalizedText.length > 500) return null;
-    const id = `translation-${++aiSequence}`;
-    pendingAiTargets.set(id, { kind, target, attributeName, originalText: text });
-    if (kind === "text") target.__baaAiPendingId = id;
-    else target.dataset[`baa${toDatasetSuffix(attributeName)}AiPending`] = id;
-    return { id, text: normalizedText, context };
+  function isExcluded(element) {
+    if (SKIPPED_TAGS.has(element.tagName) || element.closest?.(EXCLUDED_SELECTOR)) return true;
+    const view = element.ownerDocument?.defaultView;
+    for (let ancestor = element; ancestor && view?.getComputedStyle; ancestor = ancestor.parentElement) {
+      const style = view.getComputedStyle(ancestor);
+      if (style.display === "none" || style.visibility === "hidden") return true;
+    }
+    return false;
+  }
+
+  function splitText(text) {
+    const chunks = [];
+    let remaining = text;
+    while (remaining.length > 500) {
+      const window = remaining.slice(0, 500);
+      // Prefer sentence endings, then word boundaries. Keep all original whitespace for reassembly.
+      const sentences = [...window.matchAll(/[.!?][\s]+/g)];
+      const lastSentence = sentences.at(-1);
+      let end = lastSentence && lastSentence.index >= 200 ? lastSentence.index + lastSentence[0].length : 0;
+      if (!end) {
+        const spaces = [...window.matchAll(/\s+/g)];
+        const lastSpace = spaces.at(-1);
+        end = lastSpace ? lastSpace.index + lastSpace[0].length : 500;
+      }
+      chunks.push(remaining.slice(0, end));
+      remaining = remaining.slice(end);
+    }
+    if (remaining) chunks.push(remaining);
+    return chunks;
+  }
+
+  function createAiCandidates({ kind, target, attributeName = "", text, context }) {
+    if (!/[A-Za-z]/.test(String(text || ""))) return [];
+    const chunks = splitText(text);
+    const group = { kind, target, attributeName, originalText: text, chunks, results: chunks.map(() => null), ids: [] };
+    const candidates = [];
+    chunks.forEach((chunk, index) => {
+      if (!/[A-Za-z]/.test(chunk)) {
+        group.results[index] = chunk;
+        return;
+      }
+      const id = `translation-${++aiSequence}`;
+      group.ids.push(id);
+      pendingAiTargets.set(id, { group, index });
+      candidates.push({ id, text: chunk.trim(), context });
+    });
+    group.marker = group.ids[0];
+    if (kind === "text") target.__baaAiPendingId = group.marker;
+    else target.dataset[`baa${toDatasetSuffix(attributeName)}AiPending`] = group.marker;
+    return candidates;
   }
 
   function applyAiTranslations(translations) {
@@ -248,21 +303,29 @@
       const pending = pendingAiTargets.get(translation?.id);
       const translatedText = String(translation?.translatedText || "").trim();
       if (!pending || !/[\u0980-\u09FF]/u.test(translatedText)) continue;
-      if (pending.kind === "text") {
-        const leadingWhitespace = pending.originalText.match(/^\s*/)[0];
-        const trailingWhitespace = pending.originalText.match(/\s*$/)[0];
-        pending.target.__baaOriginalText = pending.originalText;
-        pending.target.nodeValue = `${leadingWhitespace}${translatedText}${trailingWhitespace}`;
-        pending.target.__baaTranslated = true;
-        pending.target.__baaAiPendingId = "";
-      } else {
-        const suffix = toDatasetSuffix(pending.attributeName);
-        pending.target.setAttribute(`data-baa-original-${pending.attributeName}`, pending.originalText);
-        pending.target.setAttribute(pending.attributeName, translatedText);
-        pending.target.dataset[`baa${suffix}Translated`] = "true";
-        delete pending.target.dataset[`baa${suffix}AiPending`];
+      const { group, index } = pending;
+      const currentText = group.kind === "text" ? group.target.nodeValue : group.target.getAttribute(group.attributeName);
+      if (group.target.isConnected === false || currentText !== group.originalText) {
+        discardAiCandidates(group.ids);
+        continue;
       }
-      pendingAiTargets.delete(translation.id);
+      const chunk = group.chunks[index];
+      group.results[index] = `${chunk.match(/^\s*/)[0]}${translatedText}${chunk.match(/\s*$/)[0]}`;
+      // Keep all IDs until completion so stopping or rescanning can discard the entire group.
+      if (group.results.some((result) => result === null)) continue;
+      const resultText = group.results.join("");
+      if (group.kind === "text") {
+        group.target.__baaOriginalText = group.originalText;
+        group.target.nodeValue = resultText;
+        group.target.__baaAppliedText = resultText;
+        group.target.__baaTranslated = true;
+      } else {
+        const suffix = toDatasetSuffix(group.attributeName);
+        group.target.setAttribute(`data-baa-original-${group.attributeName}`, group.originalText);
+        group.target.setAttribute(group.attributeName, resultText);
+        group.target.dataset[`baa${suffix}Translated`] = "true";
+      }
+      discardAiCandidates(group.ids);
       applied += 1;
     }
     return applied;
@@ -272,9 +335,10 @@
     for (const id of ids || []) {
       const pending = pendingAiTargets.get(id);
       if (!pending) continue;
-      if (pending.kind === "text") pending.target.__baaAiPendingId = "";
-      else delete pending.target.dataset[`baa${toDatasetSuffix(pending.attributeName)}AiPending`];
-      pendingAiTargets.delete(id);
+      const { group } = pending;
+      if (group.kind === "text") group.target.__baaAiPendingId = "";
+      else delete group.target.dataset[`baa${toDatasetSuffix(group.attributeName)}AiPending`];
+      for (const groupId of group.ids) pendingAiTargets.delete(groupId);
     }
   }
 

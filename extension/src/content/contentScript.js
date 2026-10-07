@@ -23,6 +23,7 @@
   let scanTimer = null;
   let aiTranslationQueue = [];
   let aiTranslationTimer = null;
+  let aiTranslationInFlight = false;
   let translationGeneration = 0;
   let imageShortcutGuidanceEnabled = true;
 
@@ -168,6 +169,7 @@
   function createTranslationObserver() {
     const observer = new MutationObserver((mutations) => {
       for (const mutation of mutations) {
+        if (mutation.target.parentElement?.closest("[data-baa-owned='true']") || mutation.target.closest?.("[data-baa-owned='true']")) continue;
         if (mutation.type === "childList") {
           for (const node of mutation.addedNodes) {
             if (node.nodeType === Node.ELEMENT_NODE) queueAiTranslations(translator.translatePage(node));
@@ -175,23 +177,33 @@
           }
         }
         if (mutation.type === "attributes" && mutation.target instanceof Element) queueAiTranslations(translator.translatePage(mutation.target));
+        if (mutation.type === "characterData" && mutation.target.parentElement) queueAiTranslations(translator.translatePage(mutation.target.parentElement));
       }
     });
-    observer.observe(document.documentElement, { childList: true, subtree: true, attributes: true, attributeFilter: ["aria-label", "title", "alt", "placeholder"] });
+    observer.observe(document.documentElement, { childList: true, characterData: true, subtree: true, attributes: true, attributeFilter: ["aria-label", "title", "alt", "placeholder"] });
     return observer;
   }
 
   function queueAiTranslations(candidates) {
     if (!Array.isArray(candidates) || candidates.length === 0 || !translationObserver && aiTranslationQueue.length > 0) return;
     aiTranslationQueue.push(...candidates);
-    if (aiTranslationTimer) return;
+    if (aiTranslationTimer || aiTranslationInFlight) return;
     aiTranslationTimer = setTimeout(flushAiTranslations, 120);
   }
 
   async function flushAiTranslations() {
     aiTranslationTimer = null;
-    if (aiTranslationQueue.length === 0) return;
-    const batch = aiTranslationQueue.splice(0, 20);
+    if (aiTranslationQueue.length === 0 || aiTranslationInFlight) return;
+    // Bound total source text, not just item count, to keep long articles within provider output limits.
+    const batch = [];
+    let characters = 0;
+    while (aiTranslationQueue.length > 0 && batch.length < 20) {
+      const next = aiTranslationQueue[0];
+      if (batch.length > 0 && characters + next.text.length > 1200) break;
+      batch.push(aiTranslationQueue.shift());
+      characters += next.text.length;
+    }
+    aiTranslationInFlight = true;
     const generation = translationGeneration;
     try {
       const response = await sendRuntimeMessage({ type: "BAA_TRANSLATE_BATCH", items: batch });
@@ -207,7 +219,11 @@
       }
     } catch {
       translator.discardAiCandidates(batch.map((item) => item.id));
-      liveRegion?.announce("AI অনুবাদ সেবা এখন পাওয়া যাচ্ছে না। নিয়মভিত্তিক অনুবাদ রাখা হয়েছে।");
+      if (generation === translationGeneration && translationObserver) {
+        liveRegion?.announce("কিছু লেখা অনুবাদ করা যায়নি। মূল লেখা রাখা হয়েছে। আবার চেষ্টা করতে অনুবাদ বন্ধ করে চালু করুন।");
+      }
+    } finally {
+      aiTranslationInFlight = false;
     }
     if (aiTranslationQueue.length > 0) aiTranslationTimer = setTimeout(flushAiTranslations, 120);
   }

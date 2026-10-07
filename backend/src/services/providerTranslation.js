@@ -72,7 +72,8 @@ async function requestProvider({ provider, items, verbosity, fetchImpl, timeoutM
         ],
         response_format: { type: "json_object" },
         temperature: 0.1,
-        max_tokens: 1200,
+        // Bangla needs more output tokens than similarly sized English text; include JSON overhead.
+        max_tokens: Math.min(8192, Math.max(1200, items.reduce((total, item) => total + item.text.length * 3 + 80, 0))),
         stream: false,
         ...providerRequestOptions(provider)
       })

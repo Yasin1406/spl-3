@@ -15,6 +15,32 @@ test("request validator rejects duplicate ids", () => {
   assert.throws(() => validateTranslationRequest({ items: [{ id: "a", text: "One" }, { id: "a", text: "Two" }] }), /INVALID_TRANSLATION_ITEM/);
 });
 
+test("oversized source text and provider output are rejected rather than silently truncated", () => {
+  assert.throws(() => validateTranslationRequest({ items: [{ id: "long", text: "a".repeat(501) }] }), /INVALID_TRANSLATION_ITEM/);
+  const source = [{ id: "long", text: "a".repeat(500) }];
+  const text = "বাংলা ".repeat(240).trim();
+  assert.ok(text.length > 1000);
+  assert.equal(validateProviderTranslations({ translations: [{ id: "long", translatedText: text }] }, source)[0].translatedText, text);
+  assert.throws(() => validateProviderTranslations({ translations: [{ id: "long", translatedText: "বাংলা".repeat(700) }] }, source), /INVALID_AI_RESPONSE/);
+});
+
+test("long translation batches receive an output budget above the old fixed limit", async () => {
+  const article = Array.from({ length: 3 }, (_, index) => ({ id: `p-${index}`, text: "A news paragraph with important details. ".repeat(12).trim(), context: "p" }));
+  let budget;
+  const translate = createProviderTranslationService({
+    providers: [{ name: "groq", apiKey: "test", endpoint: "https://example.test", model: "test" }],
+    logger: { info() {}, warn() {} },
+    fetchImpl: async (_url, options) => {
+      budget = JSON.parse(options.body).max_tokens;
+      return { ok: true, json: async () => ({ choices: [{ message: { content: JSON.stringify({
+        translations: article.map(({ id }) => ({ id, translatedText: "খবরের বিস্তারিত অনুবাদ।" }))
+      }) } }] }) };
+    }
+  });
+  assert.equal((await translate(article)).translations.length, 3);
+  assert.ok(budget > 1200 && budget <= 8192);
+});
+
 test("translation verbosity accepts supported values and rejects arbitrary prompts", () => {
   assert.equal(validateTranslationVerbosity("concise"), "concise");
   assert.equal(validateTranslationVerbosity(undefined), "balanced");

@@ -103,28 +103,42 @@ async function translateBatch(items, requestedVerbosity) {
     else missing.push({ ...item, cacheKey });
   }
 
-  if (missing.length > 0) {
+  while (missing.length > 0) {
+    const batch = [];
+    let characters = 0;
+    while (missing.length > 0 && batch.length < 20) {
+      if (batch.length > 0 && characters + missing[0].text.length > 1200) break;
+      const item = missing.shift();
+      batch.push(item);
+      characters += item.text.length;
+    }
     const backendUrl = String(preferences.baaBackendUrl || DEFAULTS.baaBackendUrl).replace(/\/$/, "");
     const response = await fetch(`${backendUrl}/api/v1/assist/translation`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ verbosity, items: missing.map(({ id, text, context }) => ({ id, text, context })) })
+      body: JSON.stringify({ verbosity, items: batch.map(({ id, text, context }) => ({ id, text, context })) })
     });
     if (!response.ok) throw new Error(`BACKEND_HTTP_${response.status}`);
     const payload = await response.json();
-    if (!Array.isArray(payload.translations)) throw new Error("INVALID_BACKEND_RESPONSE");
+    if (!Array.isArray(payload.translations) || payload.translations.length !== batch.length) throw new Error("INCOMPLETE_BACKEND_RESPONSE");
+    const seen = new Set();
+    for (const translation of payload.translations) {
+      const source = batch.find((item) => item.id === translation.id);
+      if (!source || seen.has(translation.id) || typeof translation.translatedText !== "string" ||
+          !/[\u0980-\u09FF]/u.test(translation.translatedText)) throw new Error("INVALID_BACKEND_RESPONSE");
+      seen.add(translation.id);
+    }
     providerMetadata = {
       provider: String(payload.provider || "unknown"),
       model: payload.model ? String(payload.model) : null,
       failedProviders: Array.isArray(payload.failedProviders) ? payload.failedProviders.map(String) : []
     };
     for (const translation of payload.translations) {
-      const source = missing.find((item) => item.id === translation.id);
-      if (!source || !/[\u0980-\u09FF]/u.test(translation.translatedText || "")) throw new Error("INVALID_BACKEND_RESPONSE");
+      const source = batch.find((item) => item.id === translation.id);
       translationCache.set(source.cacheKey, translation.translatedText);
       translations.push(translation);
     }
-    if (translationCache.size > 500) translationCache.delete(translationCache.keys().next().value);
+    while (translationCache.size > 500) translationCache.delete(translationCache.keys().next().value);
   }
   return { translations, ...providerMetadata };
 }
