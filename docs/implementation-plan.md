@@ -2,6 +2,12 @@
 
 This plan maps `CODEX_IMPLEMENTATION_README_UPDATED.md` onto the audited repository. The goal is a narrow, testable end-to-end prototype. Existing working translation code will be preserved until its replacement is verified.
 
+## 2026-10-07 local image follow-up
+
+- Added image decoding, resizing, and PNG/JPEG normalization before upload so larger local photos and decodable files with unrecognized MIME types can reach the backend within its limits.
+- Fixed hover selection when the page body has focus, preserving explicit image focus priority. Image errors now distinguish fetch, decoding, size, and provider failures and expose a diagnostic result.
+- Extension syntax checks and all 19 tests pass. Rebuilt `extension/dist`; the user's actual local football image still requires browser verification. Provider order remains unchanged.
+
 ## 2026-10-06 latest provider preference
 
 - Restored fixed ordered fallback at the user's request: Groq first, Mistral only on failure, Cerebras only if both fail. This supersedes the historical round-robin follow-up below for translation and image requests.

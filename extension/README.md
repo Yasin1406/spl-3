@@ -43,6 +43,12 @@ When DOM Translation is enabled, exact phrases, recognized patterns, and fully c
 
 Start the backend first by following `../backend/README.md`. Provider API keys must never be added to extension source, settings, or the built `dist` directory.
 
+## Image descriptions and OCR
+
+Focus or hover an image and press `Alt+Shift+D` for a Bangla description or `Alt+Shift+O` to read its text. Explicit image focus takes priority over hover. Large images are resized before upload (1600 pixels on the longest edge for descriptions, 2048 for OCR); decodable unsupported formats are converted to PNG or JPEG. Source files above 32 MB are rejected, and uploaded image bytes remain limited to 4 MB.
+
+For local HTML pages and local images, open the extension's **Details** in `chrome://extensions` and enable **Allow access to file URLs**. After rebuilding, reload the extension and refresh the test page. Image failures are logged in the extension service worker console and the page console; the latest result or error is available as `BAA_LAST_IMAGE_ANALYSIS` in the content script's console context.
+
 ## Build
 
 The extension is now structured like a final product: source files stay in `src`, production extension files are generated in `dist`.

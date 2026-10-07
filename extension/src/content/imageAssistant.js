@@ -47,7 +47,9 @@
     async function onKeyDown(event) {
       if (!event.altKey || !event.shiftKey || !["KeyD", "KeyO"].includes(event.code)) return;
       const activeElement = documentRef.activeElement;
-      const image = activeElement?.closest?.("img") || activeElement?.querySelector?.("img") || hoveredImage;
+      const focusedImage = activeElement?.closest?.("img") ||
+        (activeElement !== documentRef.body && activeElement !== documentRef.documentElement ? activeElement?.querySelector?.("img") : null);
+      const image = focusedImage || hoveredImage;
       if (!image?.currentSrc && !image?.src) return announcer.announce("বর্ণনা করার জন্য আগে একটি ছবিতে ফোকাস করুন বা মাউস রাখুন।");
       event.preventDefault();
       const mode = event.code === "KeyO" ? "ocr" : "describe";
@@ -60,8 +62,17 @@
         attachPersistentResult(image, response.text);
         announcer.announce(response.text);
         globalScope.BAA_LAST_IMAGE_ANALYSIS = response;
-      } catch {
-        announcer.announce("ছবিটি এখন বিশ্লেষণ করা যাচ্ছে না।");
+      } catch (error) {
+        const code = error.message || "IMAGE_ANALYSIS_FAILED";
+        globalScope.BAA_LAST_IMAGE_ANALYSIS = { error: code, mode };
+        globalScope.console?.warn?.(`Image analysis failed: ${code}`);
+        const message = {
+          IMAGE_FETCH_FAILED: "ছবিটি আনা যাচ্ছে না। ছবির লিংক ও এক্সটেনশনের ফাইল অ্যাক্সেস অনুমতি পরীক্ষা করুন।",
+          IMAGE_DECODE_FAILED: "ছবিটির ফরম্যাট পড়া যাচ্ছে না।",
+          IMAGE_TOO_LARGE: "ছবিটির ফাইল অনেক বড়। ছোট ছবি দিয়ে আবার চেষ্টা করুন।",
+          ALL_IMAGE_PROVIDERS_FAILED: "ছবি বিশ্লেষণ সেবা এখন সাড়া দিচ্ছে না। কিছুক্ষণ পরে আবার চেষ্টা করুন।"
+        }[code] || "ছবিটি এখন বিশ্লেষণ করা যাচ্ছে না।";
+        announcer.announce(message);
       }
     }
 
