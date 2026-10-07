@@ -31,6 +31,9 @@ temp/
 *.tmp
 *.bak
 
+# Local manual accessibility test page
+/manual-accessibility-test.html
+
 # Database/runtime artifacts
 *.sqlite
 *.sqlite3
