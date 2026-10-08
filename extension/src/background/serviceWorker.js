@@ -12,6 +12,8 @@ const DEFAULTS = Object.freeze({
 });
 const translationCache = new Map();
 const summaryRequests = new Map();
+let voiceSession = null;
+let offscreenCreating = null;
 
 chrome.runtime.onInstalled.addListener(() => {
   chrome.storage.local.get(null, (current) => {
@@ -21,6 +23,16 @@ chrome.runtime.onInstalled.addListener(() => {
 });
 
 chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
+  if (message?.target === "voice-offscreen") return;
+  if (["BAA_VOICE_START", "BAA_VOICE_STOP", "BAA_VOICE_CANCEL"].includes(message?.type)) {
+    handleVoiceControl(message, sender).then(sendResponse).catch(() => sendResponse({ error: "VOICE_EXTENSION_UNAVAILABLE" }));
+    return true;
+  }
+  if (["BAA_VOICE_CAPTURED", "BAA_VOICE_CAPTURE_PROCESSING", "BAA_VOICE_CAPTURE_ERROR"].includes(message?.type)) {
+    if (sender.url !== chrome.runtime.getURL("voice/offscreen.html")) return;
+    handleVoiceCapture(message).then(sendResponse).catch(() => sendResponse({ error: "VOICE_EXTENSION_UNAVAILABLE" }));
+    return true;
+  }
   if (message?.type === "BAA_SUMMARIZE_PAGE") {
     summarizePage(message, sender).then(sendResponse).catch(error => sendResponse({ error: error.message || "SUMMARY_FAILED" }));
     return true;
@@ -45,6 +57,93 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
     });
     return true;
   }
+});
+
+function validVoiceDestinations(destinations) {
+  return Array.isArray(destinations) && destinations.length > 0 && destinations.length <= 200 &&
+    destinations.every((entry, index) => entry?.id === `d${index + 1}` && entry.number === index + 1 &&
+      typeof entry.label === "string" && entry.label.trim() && entry.label.length <= 400);
+}
+async function ensureVoiceOffscreen() {
+  if (!offscreenCreating) offscreenCreating = (async () => {
+    if (!await chrome.offscreen.hasDocument()) await chrome.offscreen.createDocument({
+      url: "voice/offscreen.html", reasons: ["USER_MEDIA"], justification: "Capture one user-requested, ten-second Bangla navigation command."
+    });
+  })().finally(() => { offscreenCreating = null; });
+  return offscreenCreating;
+}
+async function voiceEvent(session, detail) {
+  if (voiceSession !== session) return;
+  await chrome.tabs.sendMessage(session.tabId, { type: "BAA_VOICE_EVENT", requestId: session.requestId, ...detail },
+    { frameId: session.frameId }).catch(() => cancelVoice(session));
+}
+async function cancelVoice(session) {
+  if (voiceSession !== session) return;
+  voiceSession = null; clearTimeout(session.timer); session.controller.abort();
+  await chrome.runtime.sendMessage({ target: "voice-offscreen", type: "BAA_CAPTURE_CANCEL", requestId: session.requestId }).catch(() => {});
+}
+async function handleVoiceControl(message, sender) {
+  if (!sender.tab || sender.frameId !== 0 || !/^voice-\d+-\d+$/.test(message.requestId || "")) return { error: "INVALID_VOICE_REQUEST" };
+  if (message.type !== "BAA_VOICE_START") {
+    const session = voiceSession;
+    if (!session || session.tabId !== sender.tab.id || session.frameId !== sender.frameId || session.requestId !== message.requestId) return { cancelled: true };
+    if (message.type === "BAA_VOICE_CANCEL") { await cancelVoice(session); return { cancelled: true }; }
+    return chrome.runtime.sendMessage({ target: "voice-offscreen", type: "BAA_CAPTURE_STOP", requestId: session.requestId });
+  }
+  if (!validVoiceDestinations(message.destinations)) return { error: "INVALID_VOICE_DESTINATIONS" };
+  if (voiceSession) return { error: "VOICE_BUSY" };
+  // Reserve before any await: immediate cancellation must also stop pending preference/permission work.
+  const session = { tabId: sender.tab.id, frameId: sender.frameId, requestId: message.requestId,
+    destinations: message.destinations.map(({ id, number, label }) => ({ id, number, label })), controller: new AbortController(), timer: null };
+  voiceSession = session;
+  session.timer = setTimeout(async () => { await voiceEvent(session, { error: "VOICE_TIMEOUT" }); await cancelVoice(session); }, 150000);
+  try {
+    const preferences = await chrome.storage.local.get(DEFAULTS);
+    if (voiceSession !== session) return { error: "VOICE_CANCELLED" };
+    if (preferences.baaAssistantEnabled === false) { await cancelVoice(session); return { error: "ASSISTANT_DISABLED" }; }
+    await ensureVoiceOffscreen();
+    if (voiceSession !== session) return { error: "VOICE_CANCELLED" };
+    const response = await chrome.runtime.sendMessage({ target: "voice-offscreen", type: "BAA_CAPTURE_START", requestId: session.requestId });
+    if (response?.error) {
+      await cancelVoice(session);
+      if (response.error === "MIC_PERMISSION_REQUIRED") await chrome.tabs.create({ url: chrome.runtime.getURL("voice/microphone.html") });
+    }
+    return response || { error: "VOICE_RECORDING_FAILED" };
+  } catch { await cancelVoice(session); return { error: "MIC_UNAVAILABLE" }; }
+}
+async function handleVoiceCapture(message) {
+  const session = voiceSession;
+  if (!session || session.requestId !== message.requestId) return { cancelled: true };
+  if (message.type === "BAA_VOICE_CAPTURE_PROCESSING") { await voiceEvent(session, { stage: "processing" }); return { ok: true }; }
+  if (message.type === "BAA_VOICE_CAPTURE_ERROR") {
+    await voiceEvent(session, { error: message.error }); await cancelVoice(session); return { ok: true };
+  }
+  if (session.processing) return { error: "VOICE_ALREADY_PROCESSING" };
+  session.processing = true;
+  try {
+    if (message.mimeType !== "audio/wav" || typeof message.audioBase64 !== "string" || message.audioBase64.length > 900000) throw new Error("INVALID_VOICE_AUDIO");
+    const preferences = await chrome.storage.local.get(DEFAULTS);
+    if (preferences.baaAssistantEnabled === false) throw new Error("ASSISTANT_DISABLED");
+    const backendUrl = String(preferences.baaBackendUrl || DEFAULTS.baaBackendUrl).replace(/\/$/, "");
+    const response = await fetch(`${backendUrl}/api/v1/assist/voice-navigation`, {
+      method: "POST", headers: { "Content-Type": "application/json" }, signal: session.controller.signal,
+      body: JSON.stringify({ audioBase64: message.audioBase64, mimeType: message.mimeType, destinations: session.destinations })
+    });
+    const result = await response.json();
+    if (!response.ok) throw new Error(result.error || "VOICE_SERVICE_UNAVAILABLE");
+    if (!result || !["match", "no_match"].includes(result.result) ||
+        (result.result === "match" ? !session.destinations.some(entry => entry.id === result.destination_id) : result.destination_id !== null)) throw new Error("INVALID_VOICE_VERDICT");
+    // Only the verdict crosses back; provider transcript remains temporary on the backend.
+    await voiceEvent(session, { result: { result: result.result, destination_id: result.destination_id } });
+  } catch (error) {
+    if (!session.controller.signal.aborted) await voiceEvent(session, { error: error.message || "VOICE_SERVICE_UNAVAILABLE" });
+  } finally { await cancelVoice(session); }
+  return { ok: true };
+}
+chrome.tabs?.onRemoved?.addListener(tabId => { if (voiceSession?.tabId === tabId) cancelVoice(voiceSession); });
+chrome.tabs?.onUpdated?.addListener((tabId, change) => { if (change.status === "loading" && voiceSession?.tabId === tabId) cancelVoice(voiceSession); });
+chrome.storage?.onChanged?.addListener((changes, area) => {
+  if (area === "local" && changes.baaAssistantEnabled?.newValue === false && voiceSession) cancelVoice(voiceSession);
 });
 
 async function summarizePage(message, sender = {}) {

@@ -15,10 +15,11 @@ test("trusted Chrome key events consume access keys and early site handlers with
   const pending = new Map();
   try {
     const shortcut = await readFile(new URL("../src/content/navigationShortcut.js", import.meta.url), "utf8");
-    const sources = await Promise.all(["accessibilityCore", "navigationModel", "focusManager", "navigationAssistant"].map(name => readFile(new URL(`../src/content/${name}.js`, import.meta.url), "utf8")));
+    const sources = await Promise.all(["accessibilityCore", "navigationModel", "focusManager", "voiceNavigation", "navigationAssistant"].map(name => readFile(new URL(`../src/content/${name}.js`, import.meta.url), "utf8")));
     const page = join(directory, "trusted.html");
     await writeFile(page, `<!doctype html><html><head><meta charset="utf-8"><script>${shortcut}</script><script>
       window.pageKeys=[];window.accessClicks=0;
+      window.voiceRequests=[];window.chrome={runtime:{onMessage:{addListener(){},removeListener(){}},sendMessage(message,callback){voiceRequests.push(message);if(message.type==='BAA_VOICE_START')window.voiceStartReply=()=>callback({recording:true});else callback({processing:true});}}};
       for(const type of ['keydown','keypress','keyup']) window.addEventListener(type,event=>{
         if(event.code==='KeyZ'){pageKeys.push(type); if(type==='keyup')location.hash='site-navigation';}
       },true);
@@ -73,6 +74,41 @@ test("trusted Chrome key events consume access keys and early site handlers with
     assert.deepEqual(await evaluate("pageKeys"), []);
     assert.equal(await evaluate("accessClicks"), 0);
     assert.equal(await evaluate("document.getElementById('home').hasAttribute('accesskey')"), false);
+    await evaluate("window.voiceShadow=document.querySelector('[data-baa-navigator]').shadowRoot;window.voiceButton=voiceShadow.getElementById('voiceStart');window.voiceLabel=voiceButton.firstChild");
+    await call("Input.dispatchKeyEvent", { type: "keyDown", modifiers: 9, code: "KeyV", key: "V", windowsVirtualKeyCode: 86 }, sessionId);
+    await call("Input.dispatchKeyEvent", { type: "keyUp", modifiers: 0, code: "KeyV", key: "v", windowsVirtualKeyCode: 86 }, sessionId);
+    assert.equal(await evaluate("voiceShadow.activeElement===voiceButton && voiceRequests.length===0"), true, "Alt+Shift+V should focus without starting capture");
+    async function enter() {
+      await call("Input.dispatchKeyEvent", { type: "keyDown", modifiers: 0, code: "Enter", key: "Enter", windowsVirtualKeyCode: 13, text: "\r", unmodifiedText: "\r" }, sessionId);
+      await call("Input.dispatchKeyEvent", { type: "keyUp", modifiers: 0, code: "Enter", key: "Enter", windowsVirtualKeyCode: 13 }, sessionId);
+    }
+    await enter();
+    assert.equal(await evaluate("voiceRequests.filter(message=>message.type==='BAA_VOICE_START').length"), 1);
+    let voiceAccessibleId, voiceTextAccessibleId;
+    async function assertAvailableButton(label) {
+      const { nodes } = await call("Accessibility.getFullAXTree", {}, sessionId);
+      const button = nodes.find(node => node.role?.value === "button" && node.name?.value === label);
+      assert.ok(button, "Voice button missing from accessibility tree: " + label);
+      if (voiceAccessibleId) assert.equal(button.nodeId, voiceAccessibleId, "Voice button accessibility identity changed");
+      voiceAccessibleId = button.nodeId;
+      const text = nodes.find(node => node.parentId === button.nodeId && node.role?.value === "StaticText");
+      assert.ok(text, "Voice label missing from accessibility tree");
+      if (voiceTextAccessibleId) assert.equal(text.nodeId, voiceTextAccessibleId, "Voice label accessibility identity changed");
+      voiceTextAccessibleId = text.nodeId;
+      assert.ok(!button.properties?.some(property => property.name === "disabled" && property.value?.value === true), "Voice button is exposed as unavailable");
+      assert.equal(await evaluate("voiceShadow.activeElement===voiceButton && voiceButton.firstChild===voiceLabel && !voiceButton.disabled && !voiceButton.hasAttribute('aria-disabled')"), true);
+    }
+    await assertAvailableButton("মাইক্রোফোন চালু হচ্ছে…");
+    await enter();
+    assert.equal(await evaluate("voiceRequests.filter(message=>message.type==='BAA_VOICE_START').length"), 1, "Repeated Enter during startup started another recording");
+    await evaluate("voiceStartReply()");
+    assert.equal(await evaluate("voiceShadow.activeElement===voiceButton && voiceButton.textContent.includes('রেকর্ডিং শেষ করুন')"), true);
+    await assertAvailableButton("রেকর্ডিং শেষ করুন");
+    await enter();
+    assert.equal(await evaluate("voiceRequests.filter(message=>message.type==='BAA_VOICE_STOP').length"), 1);
+    await assertAvailableButton("মিল খোঁজা হচ্ছে…");
+    await enter();
+    assert.equal(await evaluate("voiceRequests.filter(message=>message.type==='BAA_VOICE_STOP').length"), 1, "Repeated Enter during processing sent another stop request");
     await evaluate("const dynamic=document.createElement('a'); dynamic.id='dynamic'; dynamic.setAttribute('accesskey','x Z'); dynamic.href='#dynamic'; document.body.append(dynamic)");
     await delay(50);
     assert.equal(await evaluate("document.getElementById('dynamic').getAttribute('accesskey')"), "x");

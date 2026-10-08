@@ -8,7 +8,7 @@
     shadow.innerHTML = `<style>
       :host { all:initial; font:16px/1.6 system-ui,sans-serif; color:#17212b; }
       * { box-sizing:border-box; } button,select { font:inherit; padding:8px; color:#17212b; background:#fff; border:1px solid #526174; border-radius:4px; }
-      :focus-visible { outline:3px solid #075da9; outline-offset:3px; }
+      :focus { outline:3px solid #075da9; outline-offset:3px; }
       nav { position:fixed; top:8px; left:8px; z-index:2147483647; background:white; border:2px solid #526174; padding:10px; transform:translateY(-150%); }
       nav:focus-within { transform:none; } nav a,nav button { display:block; margin:4px; } a { color:#0645ad; }
       dialog { font:16px/1.6 system-ui,sans-serif; color:#17212b; background:#fff; border:2px solid #526174; border-radius:8px; padding:20px; width:min(680px,94vw); max-height:85vh; overflow:auto; }
@@ -20,6 +20,9 @@
       <label for="category">অংশের ধরন</label><select id="category"><option value="all">সব অংশ</option><option value="landmarks">অঞ্চল</option><option value="headings">শিরোনাম</option><option value="forms">ফর্ম ও সার্চ</option><option value="errors">বর্তমান ভুল</option></select>
       <label for="destinations">গন্তব্য</label><select id="destinations" size="8"></select>
       <p id="status" role="status" aria-live="polite"></p>
+      <button id="voiceStart" type="button" aria-keyshortcuts="Alt+Shift+V">কথা বলা শুরু করুন</button>
+      <button id="voiceCancel" type="button" hidden>ভয়েস বাতিল করুন</button>
+      <p id="voiceStatus" role="status" aria-live="polite"></p>
       <button id="go" type="button">যান</button><button id="close" type="button">বন্ধ করুন</button>
     </dialog>`;
     const dialog = shadow.querySelector("dialog"), category = shadow.getElementById("category"), list = shadow.getElementById("destinations"), status = shadow.getElementById("status");
@@ -30,6 +33,10 @@
     const prefix = `baa-nav-${Math.random().toString(36).slice(2)}-`;
     let sequence = 0, entries = [], previousFocus = null, lastPageFocus = null, active = false, timer = null;
     let detachShortcut = null;
+    let refreshPending = false;
+    const voice = globalScope.BAA_VOICE_NAVIGATION?.createVoiceNavigation({ dialog, shadow, list, category, announcer, documentRef,
+      navigate: value => navigate(entries.find(entry => key(entry.element) === value)),
+      onIdle() { if (active && refreshPending && !timer) timer = setTimeout(refresh, 150); } });
     function key(element) { if (!ids.has(element)) ids.set(element, String(++sequence)); return ids.get(element); }
     function selectedEntry() { return entries.find(entry => key(entry.element) === list.value); }
     function collectEntries() {
@@ -45,13 +52,18 @@
     function renderList() {
       const selected = list.value;
       const filtered = entries.filter(entry => category.value === "all" || entry.category === category.value);
-      list.replaceChildren(...filtered.map(entry => {
-        const option = documentRef.createElement("option"); option.value = key(entry.element); option.textContent = entry.label; return option;
-      }));
+      const changed = list.options.length !== filtered.length || filtered.some((entry, index) =>
+        list.options[index].value !== key(entry.element) || list.options[index].dataset.voiceLabel !== entry.label);
+      if (changed) list.replaceChildren(...filtered.map((entry, index) => {
+          const option = documentRef.createElement("option"); option.value = key(entry.element); option.dataset.voiceLabel = entry.label;
+          option.textContent = `${index + 1}. ${entry.label}`; return option;
+        }));
       if (filtered.some(entry => key(entry.element) === selected)) list.value = selected;
       else if (list.options.length) list.selectedIndex = 0;
       shadow.getElementById("go").disabled = filtered.length === 0;
-      status.textContent = filtered.length ? `${filtered.length}টি গন্তব্য পাওয়া গেছে।` : "এই ধরনের কোনো গন্তব্য পাওয়া যায়নি।";
+      const message = filtered.length ? `${filtered.length}টি গন্তব্য পাওয়া গেছে।` : "এই ধরনের কোনো গন্তব্য পাওয়া যায়নি।";
+      if (status.textContent !== message) status.textContent = message;
+      voice?.listChanged();
     }
     function targetId(element) {
       if (element.id && documentRef.getElementById(element.id) === element) return element.id;
@@ -81,6 +93,8 @@
     function refresh() {
       timer = null;
       if (!active) return;
+      if (dialog.open && voice?.busy()) { refreshPending = true; return; }
+      refreshPending = false;
       for (const element of reportedErrors) if (!element.isConnected || element.validity?.valid) reportedErrors.delete(element);
       entries = collectEntries();
       // Avoid replacing a focused skip link on live updates.
@@ -99,6 +113,8 @@
       }
     }
     function close(restore = true) {
+      voice?.cancel(true);
+      voice?.setOpen(false);
       if (!dialog.open) return;
       dialog.close();
       if (restore) {
@@ -119,7 +135,7 @@
       }
       previousFocus = deepFocus();
       entries = collectEntries(); renderList();
-      dialog.showModal(); category.focus(); return true;
+      dialog.showModal(); voice?.setOpen(true); category.focus(); return true;
     }
     function navigate(entry) {
       // Recheck current protection before acting on a possibly stale list entry.
@@ -137,7 +153,7 @@
       const wasOpen = dialog.open;
       close(false);
       if (!focusManager.focus(target)) {
-        if (wasOpen) { dialog.showModal(); list.focus(); status.textContent = "এই গন্তব্যে ফোকাস দেওয়া যায়নি। অন্য অংশ বেছে নিন।"; }
+        if (wasOpen) { dialog.showModal(); voice?.setOpen(true); list.focus(); status.textContent = "এই গন্তব্যে ফোকাস দেওয়া যায়নি। অন্য অংশ বেছে নিন।"; }
         else announcer?.announce("এই গন্তব্যে ফোকাস দেওয়া যায়নি।");
       }
     }
@@ -161,7 +177,7 @@
     shadow.getElementById("go").addEventListener("click", () => navigate(selectedEntry()));
     shadow.getElementById("close").addEventListener("click", () => close());
     list.addEventListener("keydown", event => { if (event.key === "Enter") { event.preventDefault(); navigate(selectedEntry()); } });
-    dialog.addEventListener("cancel", event => { event.preventDefault(); close(); });
+    dialog.addEventListener("cancel", event => { event.preventDefault(); if (voice?.busy()) voice.cancel(); else close(); });
     shadow.querySelector("nav").addEventListener("focusout", () => { if (!timer) timer = setTimeout(refresh, 150); });
     return Object.freeze({
       open,
@@ -182,7 +198,7 @@
       },
       stop() {
         if (!active) return;
-        active = false; observer.disconnect(); clearTimeout(timer); timer = null; close();
+        active = false; observer.disconnect(); clearTimeout(timer); timer = null; close(); voice?.dispose();
         detachShortcut?.(); detachShortcut = null;
         documentRef.removeEventListener("invalid", onInvalid, true);
         documentRef.removeEventListener("input", onInput, true);
