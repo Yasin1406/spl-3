@@ -1,5 +1,15 @@
 # Navigator acceptance checks
 
+## Noise reduction and protected content (FR-15/FR-16)
+
+1. Open `tests/fixtures/navigation-noise.html` after reloading the extension. Leave the new noise checkbox off initially; confirm destinations follow document order.
+2. In extension settings, enable “পুনরাবৃত্ত অপ্রয়োজনীয় অংশগুলো গন্তব্যের তালিকায় পরে দেখান” and save. Reopen Alt+Shift+Z from the initial page button. Confirm the promotional sidebars and their headings appear after normal regions, with “কম অগ্রাধিকার” announced by NVDA. Every destination must remain selectable and reachable.
+3. Confirm the sponsored regions containing security warnings, errors, payment, consent/legal text, authentication and task actions do not receive low priority. Confirm ordinary sidebar/footer placement alone does not lower priority.
+4. With the list open, use developer tools to append a security-warning paragraph to a promotional aside. Confirm its priority changes without losing the selected destination or moving focus. Remove the warning and confirm it can qualify again.
+5. Navigate to a low-priority aside and reopen the navigator: that focused region must retain normal priority. Confirm native NVDA heading/link navigation and ordinary Tab remain available throughout.
+6. Disable noise reduction and save while a destination is selected; confirm document order returns and selection remains. Disable/re-enable the assistant and reload the page; confirm the explicit saved setting is honored and no duplicate UI/listeners appear.
+7. Check representative Bangla/English article, login, checkout and consent pages. Record NVDA speech, browse-cursor behavior, any missed critical content or false positives. Automated checks do not establish universal semantic classification or manual acceptance.
+
 Implementation date: 2026-10-08. Headless Chrome DOM integration passes; actual NVDA speech, browse-cursor synchronization, physical shortcuts and keyboard-layout interactions still require manual verification.
 
 ## Load and open

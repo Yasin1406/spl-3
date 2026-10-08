@@ -1,5 +1,13 @@
 # Implementation Plan
 
+## 2026-10-08 FR-15/FR-16 implementation
+
+- Added `contentProtection.js` and `noiseClassifier.js`, loaded before navigation integration and copied into the production extension. Protection takes precedence over scores and propagates to descendants of protected inventoried regions.
+- Added an accessible, default-off noise setting, wired through worker defaults, settings and content-script lifecycle. The navigator keeps every destination, reorders only its generated list, marks low priority in Bangla and restores document order immediately on disablement. Native navigation and authored content remain intact.
+- Deterministic threshold 0.80 with mandatory promotional evidence. Strong promotional labels, text, repeated structure/link groups and secondary placement contribute; structural repetition or footer placement alone never qualifies. Analysis bounds/unresolved references retain normal priority. No AI, requests, input values or stored page text are involved.
+- Browser/unit checks cover scoring/protection precedence, all required critical categories, current focus, dynamic warnings, selection retention, translated originals, unresolved references, limits, publisher DOM preservation and low-priority reachability. Extension check, all 30 tests and build pass; Chrome tests require approved execution outside the current sandbox.
+- FR-15/FR-16 remain `PARTIAL` pending the new manual noise checks in `docs/navigation-acceptance.md` and representative-site/NVDA evaluation. This dated entry supersedes the older Phase 8 statement that noise handling is absent. Voice and unrelated dynamic-announcement work remain outside this change.
+
 This plan maps `CODEX_IMPLEMENTATION_README_UPDATED.md` onto the audited repository. The goal is a narrow, testable end-to-end prototype. Existing working translation code will be preserved until its replacement is verified.
 
 ## 2026-10-08 generic shortcut conflict handling

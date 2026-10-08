@@ -1,4 +1,6 @@
 # Codex Implementation Guide  
+
+> FR-15/FR-16 implementation update (2026-10-08): the extension now includes default-off, local heuristic noise classification for its guided region navigator. Qualifying promotional regions appear later and remain individually reachable; publisher content is not hidden, deleted or changed. Protected-content checks override scores and propagate through containing inventoried regions. Settings, dynamic reclassification and automated browser/unit verification are implemented. Manual NVDA and representative-site acceptance remain pending; see `IMPLEMENTATION_STATUS.md` and `docs/navigation-acceptance.md` for the exact policy and limitations.
 ## AI-Driven Bangla Web Accessibility Assistant for Visually Impaired Users
 
 > **Purpose of this file:** This document is the implementation brief for Codex inside VS Code.  

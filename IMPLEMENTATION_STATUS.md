@@ -1,5 +1,14 @@
 # Implementation Status
 
+## 2026-10-08 — FR-15/FR-16 protected navigation priority
+
+- FR-15 and FR-16: `PARTIAL` pending manual Chrome/NVDA and representative-site acceptance. Implemented an opt-in, default-off `baaNoiseReductionEnabled` setting and deterministic local protection/noise classifiers. No backend or AI dependency.
+- Enabled navigation stably partitions normal/protected destinations before qualifying promotional regions. All destinations remain listed and reachable; low-priority labels are in Bangla. Disablement restores document order; dynamic refresh and settings changes retain selection. Publisher content, native tab order, visibility and semantics are untouched by noise classification.
+- Protection precedes priority reduction and propagates through containing inventoried regions. Security/errors/payment/consent/legal/authentication/task actions are recognized through semantics, English/Bangla text, authored labels, references and action paths. Forms, navigation, main content, live regions, action controls, current page focus and embedded/unknown content receive conservative protection. Values of fields are never read; evidence is local and not persisted. Unresolved references and analysis limits prevent deprioritization. Original authored text/attributes remain evidence during translation.
+- Threshold: 0.80. Promotional labels +0.65; promotional text +0.25; outside main +0.15; aside/footer placement +0.15; at least three matching structures +0.20; repeated groups of at least two links +0.20. Scores cap at 1.00. Promotional evidence is mandatory; placement/repetition alone cannot lower priority.
+- Verification: extension syntax check (24 JavaScript files), all 30 tests including Chrome integrations, production build and `git diff --check` pass. The initial sandbox test run prevented Chrome GPU/renderer startup; approved execution outside the sandbox resolved this. Added classifier tests and browser cases for protected categories, references/action paths, analysis limits, translation, live warning insertion/removal, focus, selection, unchanged publisher DOM, reachability and setting reversal.
+- Limitations: heuristics cannot establish the meaning of every arbitrary website or an unstated task. Conservatively retain priority for recognized critical/ambiguous contexts. Cross-origin frames and closed shadow roots remain outside navigator coverage; manual NVDA speech/browse-cursor acceptance remains outstanding. See `docs/navigation-acceptance.md`.
+
 ## 2026-10-08 — Generic navigator shortcut conflicts
 
 - Reproduced unintended page navigation using trusted Chrome input events and a generic accesskey=z link: native access-key activation can occur despite cancelling the keydown event.
