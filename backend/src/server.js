@@ -2,6 +2,7 @@ import { createApp } from "./app.js";
 import { createProviderTranslationService, providersFromEnvironment } from "./services/providerTranslation.js";
 import { createProviderImageAnalysisService, visionProvidersFromEnvironment } from "./services/providerImageAnalysis.js";
 import { createProviderPageSummaryService } from "./services/providerPageSummary.js";
+import { createProviderVoiceNavigationService } from "./services/providerVoiceNavigation.js";
 
 const providers = providersFromEnvironment(process.env);
 if (providers.length === 0) {
@@ -17,6 +18,7 @@ const app = createApp({
   translateBatch,
   analyzeImage,
   summarizePage: createProviderPageSummaryService({ providers }),
+  navigateVoice: createProviderVoiceNavigationService({ environment: process.env }),
   allowedOrigin: process.env.ALLOWED_EXTENSION_ORIGIN || "*"
 });
 

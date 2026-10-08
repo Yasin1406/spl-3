@@ -1,0 +1,31 @@
+{
+  "destinations": [
+    { "id": "d1", "number": 1, "label": "হেডার" },
+    { "id": "d2", "number": 2, "label": "নেভিগেশন: Site" },
+    { "id": "d3", "number": 3, "label": "সার্চ: Search Wikipedia" },
+    { "id": "d4", "number": 4, "label": "ফর্ম: যোগাযোগ (1/2)" },
+    { "id": "d5", "number": 5, "label": "শিরোনাম 1: কানাডা মানসিক রোগকে ইউথেনেসিয়া প্রাপ্তির একমাত্র কারণ হিসেবে অস্বীকার" },
+    { "id": "d6", "number": 6, "label": "নেভিগেশন: Personal tools" },
+    { "id": "d7", "number": 7, "label": "মূল কনটেন্ট: Welcome to Wikipedia" },
+    { "id": "d8", "number": 8, "label": "ফর্ম: নিবন্ধন (2/2)" },
+    { "id": "d9", "number": 9, "label": "ফুটার" },
+    { "id": "d10", "number": 10, "label": "অঞ্চল: আজকের খবর" },
+    { "id": "d11", "number": 11, "label": "শিরোনাম 1: সম্পর্কিত সংবাদ" },
+    { "id": "d12", "number": 12, "label": "বর্তমান ভুল: ইমেইল" }
+  ],
+  "cases": [
+    { "name": "short heading with punctuation and multiple H1s", "transcript": "শিরোনাম এক।", "expected": "d5" },
+    { "name": "search synonym", "transcript": "খোঁজার জায়গায় যান", "expected": "d3" },
+    { "name": "form type number", "transcript": "ফর্ম দুই", "expected": "d8" },
+    { "name": "navigation name pronunciation", "transcript": "পার্সোনাল তুলস", "expected": "d6" },
+    { "name": "main content synonym", "transcript": "মূল লেখায় যান", "expected": "d7" },
+    { "name": "header short label", "transcript": "হেডার", "expected": "d1" },
+    { "name": "footer short label", "transcript": "ফুটার", "expected": "d9" },
+    { "name": "named region fragment", "transcript": "আজকের খবর", "expected": "d10" },
+    { "name": "validation error type", "transcript": "ফর্মের ভুলে যান", "expected": "d12" },
+    { "name": "explicit destination ordinal", "transcript": "পাঁচ নম্বর গন্তব্যে যান", "expected": "d5" },
+    { "name": "absent heading level", "transcript": "শিরোনাম চার", "expected": null },
+    { "name": "unrelated speech", "transcript": "আজ আবহাওয়া কেমন", "expected": null },
+    { "name": "unsupported submit action", "transcript": "ফর্ম জমা দিন", "expected": null }
+  ]
+}

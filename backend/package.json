@@ -5,7 +5,7 @@
   "type": "module",
   "scripts": {
     "start": "node --env-file-if-exists=.env src/server.js",
-    "check": "node --check src/server.js && node --check src/app.js && node --check src/routes/translation.js && node --check src/routes/imageAnalysis.js && node --check src/services/providerTranslation.js && node --check src/services/providerImageAnalysis.js && node --check src/services/providerPolicy.js && node --check src/validators/translation.js && node --check src/validators/imageAnalysis.js && node --check src/routes/pageSummary.js && node --check src/services/providerPageSummary.js && node --check src/validators/pageSummary.js",
+    "check": "node --check src/server.js && node --check src/app.js && node --check src/routes/translation.js && node --check src/routes/imageAnalysis.js && node --check src/services/providerTranslation.js && node --check src/services/providerImageAnalysis.js && node --check src/services/providerPolicy.js && node --check src/validators/translation.js && node --check src/validators/imageAnalysis.js && node --check src/routes/pageSummary.js && node --check src/services/providerPageSummary.js && node --check src/validators/pageSummary.js && node --check src/routes/voiceNavigation.js && node --check src/services/providerVoiceNavigation.js && node --check src/validators/voiceNavigation.js",
     "test": "node --test tests/*.test.js"
   },
   "dependencies": {

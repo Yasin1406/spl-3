@@ -2,6 +2,12 @@
 
 Local Node/Express service for provider-backed accessibility assistance. Groq, Mistral, and Cerebras API keys remain here and are never bundled with the Chrome extension.
 
+Voice navigation uses a separate Gemini → Speechmatics → Sarvam transcription chain and a Gemini destination resolver.
+Add `GEMINI_API_KEY`, `SPEECHMATICS_API_KEY` and `SARVAM_API_KEY` to the existing `.env` without replacing your translation keys.
+Voice transcription defaults to `gemini-3.8-flash`; destination resolution uses `gemini-3.1-flash-lite`.
+Override `GEMINI_STT_MODEL` and `GEMINI_VOICE_RESOLVER_MODEL` if needed.
+Restart the server after changing keys. See [voice setup and manual checks](../docs/voice-navigation.md).
+
 ## Hybrid translation flow
 
 1. The extension tries exact phrases, known patterns, and fully covered short labels locally.
