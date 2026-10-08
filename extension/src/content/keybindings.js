@@ -54,12 +54,15 @@
     });
   }
   globalScope.BAA_KEYBINDINGS = Object.freeze({ storageKey, defaults, labels, normalize, validate, key, matches, subscribe, bindHint, get: action => bindings[action] });
-  if (globalScope.chrome?.storage?.local) {
+  if (globalScope.BAA_PREFERENCES || globalScope.chrome?.storage?.local) {
     // Register first so a delayed initial read cannot overwrite a newer change.
     let revision = 0;
-    chrome.storage.onChanged?.addListener((changes, area) => {
+    const onChange = (changes, area) => {
       if (area === "local" && changes[storageKey]) { revision++; update(changes[storageKey].newValue || {}); }
-    });
-    chrome.storage.local.get({ [storageKey]: {} }, values => { if (!revision) update(values[storageKey]); });
+    };
+    if (globalScope.BAA_PREFERENCES) globalScope.BAA_PREFERENCES.subscribe(onChange);
+    else chrome.storage.onChanged?.addListener(onChange);
+    const preferences = globalScope.BAA_PREFERENCES || chrome.storage.local;
+    preferences.get({ [storageKey]: {} }, values => { if (!revision) update(values[storageKey]); });
   }
 })(globalThis);

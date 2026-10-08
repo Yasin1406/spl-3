@@ -1,3 +1,5 @@
+if (typeof importScripts === "function") importScripts("supabaseConfig.js", "../content/keybindings.js", "account.js");
+
 const DEFAULTS = Object.freeze({
   baaAssistantEnabled: true,
   baaCustomKeybindings: {},
@@ -15,6 +17,28 @@ const translationCache = new Map();
 const summaryRequests = new Map();
 let voiceSession = null;
 let offscreenCreating = null;
+let accounts = null;
+const accountsReady = globalThis.BAA_ACCOUNTS ? (async () => {
+  // Keep persistent sessions out of content scripts. Preferences are delivered
+  // through the filtered message bridge rather than exposing local storage.
+  await chrome.storage.local.setAccessLevel({ accessLevel: "TRUSTED_CONTEXTS" });
+  accounts = globalThis.BAA_ACCOUNTS.createAccountManager({ storage: chrome.storage.local, defaults: DEFAULTS,
+    keybindings: globalThis.BAA_KEYBINDINGS, config: globalThis.BAA_SUPABASE_CONFIG });
+  await accounts.ready;
+  return accounts;
+})() : Promise.resolve(null);
+
+if (globalThis.BAA_ACCOUNTS) {
+  accountsReady.then(manager => manager.sync()).catch(() => {});
+  chrome.alarms.create("baa-account-sync", { periodInMinutes: 5 });
+  chrome.alarms.onAlarm.addListener(alarm => { if (alarm.name === "baa-account-sync") accountsReady.then(manager => manager.sync()).catch(() => {}); });
+  chrome.storage.onChanged.addListener((changes, area) => {
+    if (area !== "local") return;
+    const filtered = Object.fromEntries(Object.entries(changes).filter(([key]) => key in DEFAULTS));
+    if (!Object.keys(filtered).length) return;
+    chrome.tabs.query({}).then(tabs => Promise.all(tabs.map(tab => chrome.tabs.sendMessage(tab.id, { type: "BAA_PREFERENCES_CHANGED", changes: filtered }).catch(() => {})))).catch(() => {});
+  });
+}
 
 chrome.runtime.onInstalled.addListener(() => {
   chrome.storage.local.get(null, (current) => {
@@ -24,6 +48,25 @@ chrome.runtime.onInstalled.addListener(() => {
 });
 
 chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
+  if (["BAA_GET_ACCOUNT_STATUS", "BAA_SIGN_IN", "BAA_SIGN_UP", "BAA_RECOVER_ACCOUNT", "BAA_RESEND_OTP", "BAA_RESET_PASSWORD", "BAA_VERIFY_OTP", "BAA_SIGN_OUT", "BAA_SYNC_PREFERENCES", "BAA_SAVE_PREFERENCES"].includes(message?.type)) {
+    const senderPage = typeof sender.url === "string" ? sender.url.split(/[?#]/, 1)[0] : "";
+    const trusted = sender.id === chrome.runtime.id && ["settings/settings.html", "popup/popup.html"].some(path => senderPage === chrome.runtime.getURL(path));
+    if (!trusted) { sendResponse({ error: "ACCOUNT_ACCESS_DENIED" }); return; }
+    accountsReady.then(async manager => {
+      if (!manager) throw new Error("ACCOUNT_NOT_CONFIGURED");
+      if (message.type === "BAA_GET_ACCOUNT_STATUS") return { account: await manager.getStatus() };
+      if (message.type === "BAA_SIGN_IN") return manager.signIn(message.email, message.password);
+      if (message.type === "BAA_SIGN_UP") return manager.signUp(message.email, message.password);
+      if (message.type === "BAA_RECOVER_ACCOUNT") return manager.recover(message.email);
+      if (message.type === "BAA_RESEND_OTP") return manager.resendOtp();
+      if (message.type === "BAA_RESET_PASSWORD") return manager.resetPassword(message.password);
+      if (message.type === "BAA_VERIFY_OTP") return manager.verifyOtp(message.email, message.token, message.purpose);
+      if (message.type === "BAA_SIGN_OUT") return manager.signOut();
+      if (message.type === "BAA_SYNC_PREFERENCES") return { account: await manager.sync() };
+      return manager.save(message.preferences);
+    }).then(sendResponse).catch(error => sendResponse({ error: error.message || "ACCOUNT_SERVICE_ERROR" }));
+    return true;
+  }
   if (message?.target === "voice-offscreen") return;
   if (["BAA_VOICE_START", "BAA_VOICE_STOP", "BAA_VOICE_CANCEL"].includes(message?.type)) {
     handleVoiceControl(message, sender).then(sendResponse).catch(() => sendResponse({ error: "VOICE_EXTENSION_UNAVAILABLE" }));
@@ -43,7 +86,8 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
     sendResponse({ cancelled: true }); return;
   }
   if (message?.type === "BAA_GET_PREFERENCES") {
-    chrome.storage.local.get(DEFAULTS, sendResponse);
+    if (globalThis.BAA_ACCOUNTS) accountsReady.then(manager => manager.getPreferences()).then(sendResponse).catch(() => sendResponse({ ...DEFAULTS }));
+    else chrome.storage.local.get(DEFAULTS, sendResponse);
     return true;
   }
   if (message?.type === "BAA_TRANSLATE_BATCH") {

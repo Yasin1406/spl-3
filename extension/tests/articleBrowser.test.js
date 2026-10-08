@@ -44,6 +44,7 @@ test("Chrome article integration: heading/content focus, complete translation, l
         runtime: {
           onMessage: { addListener(listener) { messageListeners.push(listener); } },
           sendMessage(message, callback) {
+            if (message.type === 'BAA_GET_PREFERENCES') { callback({ baaTranslationEnabled: true, baaFormGuidanceEnabled: false }); return; }
             requests.push(message);
             active++;
             maxActive = Math.max(maxActive, active);
@@ -56,6 +57,7 @@ test("Chrome article integration: heading/content focus, complete translation, l
           }
         }
       };
+      changedListeners.push((changes, area) => { if (area === 'local') messageListeners.forEach(listener => listener({ type: 'BAA_PREFERENCES_CHANGED', changes })); });
       window.errors = [];
       window.addEventListener('error', event => errors.push(event.message));
     `;

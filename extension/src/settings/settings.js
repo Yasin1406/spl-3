@@ -42,7 +42,7 @@
   for (const hint of document.querySelectorAll("[data-shortcut]")) keys.bindHint(hint, hint.dataset.shortcut);
   const defaults = { baaAssistantEnabled: true, baaFormGuidanceEnabled: true, baaTranslationVerbosity: "balanced", baaAiTranslationEnabled: true, baaImageShortcutGuidanceEnabled: true, baaAiSummaryEnabled: true, baaSummaryDetail: "standard" };
 
-  chrome.storage.local.get({ ...defaults, baaNoiseReductionEnabled: false, [keys.storageKey]: {} }, (values) => {
+  function renderPreferences(values) {
     const stored = keys.validate(values[keys.storageKey]);
     for (const [action, input] of Object.entries(inputs)) input.value = stored.custom?.[action] || "";
     loaded = true;
@@ -54,6 +54,14 @@
     imageShortcutGuidanceEnabled.checked = Boolean(values.baaImageShortcutGuidanceEnabled);
     aiSummaryEnabled.checked = Boolean(values.baaAiSummaryEnabled);
     summaryDetail.value = values.baaSummaryDetail;
+  }
+  chrome.runtime.sendMessage({ type: "BAA_GET_PREFERENCES" }, values => {
+    if (chrome.runtime.lastError || values?.error || !values) { status.textContent = "সেটিংস লোড করা যায়নি। পৃষ্ঠাটি আবার খুলুন।"; return; }
+    renderPreferences({ ...defaults, baaNoiseReductionEnabled: false, [keys.storageKey]: {}, ...values });
+  });
+  chrome.storage.onChanged.addListener((changes, area) => {
+    if (area !== "local" || !Object.keys(changes).some(key => key in defaults || key === keys.storageKey || key === "baaNoiseReductionEnabled")) return;
+    chrome.storage.local.get({ ...defaults, baaNoiseReductionEnabled: false, [keys.storageKey]: {} }, renderPreferences);
   });
 
   form.addEventListener("submit", (event) => {
@@ -61,7 +69,7 @@
     if (!loaded) return;
     const bindings = validateBindings();
     if (bindings.error) { inputs[bindings.action]?.focus(); return; }
-    chrome.storage.local.set({
+    chrome.runtime.sendMessage({ type: "BAA_SAVE_PREFERENCES", preferences: {
       [keys.storageKey]: bindings.custom,
       baaAssistantEnabled: enabled.checked,
       baaNoiseReductionEnabled: noiseReductionEnabled.checked,
@@ -71,9 +79,9 @@
       baaImageShortcutGuidanceEnabled: imageShortcutGuidanceEnabled.checked,
       baaAiSummaryEnabled: aiSummaryEnabled.checked,
       baaSummaryDetail: summaryDetail.value || "standard"
-    }, () => {
-      if (chrome.runtime.lastError) { status.textContent = "সেটিংস সংরক্ষণ করা যায়নি। আবার চেষ্টা করুন।"; return; }
-      status.textContent = "সেটিংস সংরক্ষণ করা হয়েছে।";
+    } }, response => {
+      if (chrome.runtime.lastError || response?.error || !response?.saved) { status.textContent = "সেটিংস সংরক্ষণ করা যায়নি। আবার চেষ্টা করুন।"; return; }
+      status.textContent = response.account?.signedIn ? (response.account.sync === "synced" ? "সেটিংস অ্যাকাউন্টে সংরক্ষণ করা হয়েছে।" : "সেটিংস এই ব্রাউজারে সংরক্ষিত। অ্যাকাউন্টে সিঙ্ক বাকি আছে।") : "অতিথির সেটিংস এই ব্রাউজারে সংরক্ষণ করা হয়েছে।";
     });
   });
 })();

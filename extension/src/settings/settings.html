@@ -9,7 +9,64 @@
   <body>
     <main>
       <h1>বাংলা অ্যাক্সেসিবিলিটি সহায়কের সেটিংস</h1>
-      <p>এই সেটিংস শুধু আপনার ব্রাউজারে সংরক্ষিত থাকে।</p>
+      <p>অ্যাকাউন্ট ছাড়াও ব্যবহার করতে পারবেন। অতিথির সেটিংস এই ব্রাউজারে থাকবে; সাইন ইন করলে পছন্দগুলো আপনার অ্যাকাউন্টে সংরক্ষিত হবে।</p>
+
+      <section id="accountSection" aria-labelledby="accountHeading">
+        <h2 id="accountHeading">অ্যাকাউন্ট ও পছন্দ সংরক্ষণ</h2>
+        <p id="accountStatus" role="status" aria-live="polite">অ্যাকাউন্টের অবস্থা দেখা হচ্ছে…</p>
+        <form id="accountLoginForm" hidden>
+          <h3>সাইন ইন</h3>
+          <label for="accountLoginEmail">ইমেইল ঠিকানা</label>
+          <input id="accountLoginEmail" type="email" autocomplete="username" required maxlength="254">
+          <label for="accountLoginPassword">পাসওয়ার্ড</label>
+          <input id="accountLoginPassword" data-account-password type="password" autocomplete="current-password" required maxlength="128">
+          <button type="submit">সাইন ইন করুন</button>
+          <button id="accountShowSignup" type="button">নতুন অ্যাকাউন্ট তৈরি করুন</button>
+          <button id="accountShowRecovery" type="button">পাসওয়ার্ড ভুলে গেছেন?</button>
+        </form>
+        <form id="accountEmailForm" hidden>
+          <h3>নতুন অ্যাকাউন্ট</h3>
+          <label for="accountEmail">ইমেইল ঠিকানা</label>
+          <input id="accountEmail" type="email" autocomplete="email" required maxlength="254" aria-describedby="accountHelp">
+          <label for="accountSignupPassword">পাসওয়ার্ড</label>
+          <input id="accountSignupPassword" data-account-password type="password" autocomplete="new-password" required minlength="8" maxlength="128" aria-describedby="accountHelp">
+          <label for="accountSignupConfirm">আবার পাসওয়ার্ড লিখুন</label>
+          <input id="accountSignupConfirm" data-account-password type="password" autocomplete="new-password" required minlength="8" maxlength="128">
+          <p id="accountHelp">অন্তত ৮ অক্ষরের পাসওয়ার্ড দিন। অ্যাকাউন্ট তৈরির জন্য ইমেইলে কোড পাঠাব। ইমেইল যাচাই হলে বর্তমান পছন্দগুলো সংরক্ষিত হবে। পরেরবার ইমেইল ও পাসওয়ার্ড দিয়ে সাইন ইন করতে পারবেন।</p>
+          <button type="submit">অ্যাকাউন্ট তৈরি করে কোড পাঠান</button>
+          <button class="accountBackLogin" type="button">সাইন ইন-এ ফিরে যান</button>
+        </form>
+        <form id="accountRecoveryForm" hidden>
+          <h3>পাসওয়ার্ড পুনরুদ্ধার</h3>
+          <label for="accountRecoveryEmail">অ্যাকাউন্টের ইমেইল ঠিকানা</label>
+          <input id="accountRecoveryEmail" type="email" autocomplete="email" required maxlength="254">
+          <button type="submit">পুনরুদ্ধারের কোড পাঠান</button>
+          <button class="accountBackLogin" type="button">সাইন ইন-এ ফিরে যান</button>
+        </form>
+        <form id="accountOtpForm" hidden>
+          <label for="accountOtp">ইমেইলে পাওয়া কোড</label>
+          <input id="accountOtp" type="text" inputmode="numeric" autocomplete="one-time-code" required pattern="[0-9]{6,10}" minlength="6" maxlength="10">
+          <button type="submit">কোড যাচাই করুন</button>
+          <button id="accountResend" type="button">আবার কোড পাঠান</button>
+          <button id="accountChangeEmail" type="button">ফিরে যান</button>
+        </form>
+        <form id="accountResetForm" hidden>
+          <h3>নতুন পাসওয়ার্ড দিন</h3>
+          <label for="accountResetPassword">নতুন পাসওয়ার্ড</label>
+          <input id="accountResetPassword" data-account-password type="password" autocomplete="new-password" required minlength="8" maxlength="128">
+          <label for="accountResetConfirm">আবার নতুন পাসওয়ার্ড লিখুন</label>
+          <input id="accountResetConfirm" data-account-password type="password" autocomplete="new-password" required minlength="8" maxlength="128">
+          <button type="submit">পাসওয়ার্ড সংরক্ষণ করুন</button>
+          <button class="accountBackLogin" type="button">সাইন ইন-এ ফিরে যান</button>
+        </form>
+        <label class="check-row"><input id="showAccountPasswords" type="checkbox"> পাসওয়ার্ড দেখান</label>
+        <div id="accountSignedIn" hidden>
+          <button id="accountSync" type="button">পছন্দগুলো সিঙ্ক করুন</button>
+          <button id="accountSignOut" type="button">সাইন আউট করুন</button>
+          <p>সাইন আউট করলে অতিথির আগের পছন্দগুলো ফিরে আসবে। ইন্টারনেট না থাকলেও সংরক্ষিত পছন্দ দিয়ে কাজ করতে পারবেন।</p>
+        </div>
+        <p id="accountMessage" role="status" aria-live="polite"></p>
+      </section>
 
       <form id="settingsForm">
         <fieldset>
@@ -82,5 +139,6 @@
     </main>
     <script src="../content/keybindings.js"></script>
     <script src="settings.js"></script>
+    <script src="account.js"></script>
   </body>
 </html>

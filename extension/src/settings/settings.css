@@ -15,3 +15,7 @@ button:focus-visible, input:focus-visible { outline: 3px solid #1f6feb; outline-
 .shortcut-row input { box-sizing: border-box; width: 100%; height: 44px; padding: 8px; font: inherit; }
 .shortcut-row input[aria-invalid="true"] { border: 2px solid #a01818; }
 #keybindingError { color: #a01818; }
+[hidden] { display: none !important; }
+#accountSection { padding: 16px; border: 1px solid #9aaba1; border-radius: 8px; }
+#accountSection input { box-sizing: border-box; width: 100%; height: 44px; padding: 8px; font: inherit; }
+#accountSignedIn { display: grid; gap: 12px; }

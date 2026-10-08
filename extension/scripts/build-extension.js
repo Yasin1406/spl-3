@@ -1,9 +1,26 @@
-import { copyFile, mkdir, rm } from "node:fs/promises";
+import { copyFile, mkdir, rm, readFile, writeFile } from "node:fs/promises";
+import { parseEnv } from "node:util";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 
 const extensionRoot = dirname(fileURLToPath(new URL("../package.json", import.meta.url)));
 const distDir = join(extensionRoot, "dist");
+let environment = {};
+try { environment = parseEnv(await readFile(join(extensionRoot, "../backend/.env"), "utf8")); }
+catch (error) { if (error.code !== "ENOENT") throw error; }
+const suppliedUrl = (process.env.SUPABASE_URL || environment.SUPABASE_URL || "").trim();
+let url = "";
+if (suppliedUrl) {
+  let parsed;
+  try { parsed = new URL(suppliedUrl); } catch { throw new Error("SUPABASE_URL must be your HTTPS Supabase project URL."); }
+  if (parsed.protocol !== "https:" || !/^[a-z0-9-]+\.supabase\.co$/.test(parsed.hostname) || parsed.username || parsed.password) throw new Error("SUPABASE_URL must be your HTTPS Supabase project URL.");
+  // Accept a copied API endpoint URL by using the project's origin.
+  url = parsed.origin;
+}
+const publishableKey = (process.env.SUPABASE_PUBLISHABLE_KEY || environment.SUPABASE_PUBLISHABLE_KEY || "").trim();
+if (url || publishableKey) {
+  if (!/^https:\/\/[a-z0-9-]+\.supabase\.co$/.test(url) || !/^sb_publishable_[A-Za-z0-9_-]+$/.test(publishableKey)) throw new Error("Set a valid SUPABASE_URL and sb_publishable_ SUPABASE_PUBLISHABLE_KEY in backend/.env.");
+}
 
 const filesToCopy = [
   ["public/manifest.json", "manifest.json"],
@@ -14,6 +31,8 @@ const filesToCopy = [
   ["src/settings/settings.css", "settings/settings.css"],
   ["src/settings/settings.js", "settings/settings.js"],
   ["src/background/serviceWorker.js", "background/serviceWorker.js"],
+  ["src/background/account.js", "background/account.js"],
+  ["src/settings/account.js", "settings/account.js"],
   ["src/voice/offscreen.html", "voice/offscreen.html"],
   ["src/voice/offscreen.js", "voice/offscreen.js"],
   ["src/voice/microphone.html", "voice/microphone.html"],
@@ -39,6 +58,7 @@ const filesToCopy = [
   ["src/content/navigationAssistant.js", "content/navigationAssistant.js"],
   ["src/content/navigationShortcut.js", "content/navigationShortcut.js"],
   ["src/content/keybindings.js", "content/keybindings.js"],
+  ["src/content/preferences.js", "content/preferences.js"],
   ["src/content/contentScript.js", "content/contentScript.js"]
 ];
 
@@ -52,4 +72,8 @@ for (const [source, destination] of filesToCopy) {
   await copyFile(sourcePath, destinationPath);
 }
 
+// Allowlist only public configuration; never copy .env or SMTP/provider secrets.
+await writeFile(join(distDir, "background/supabaseConfig.js"), `globalThis.BAA_SUPABASE_CONFIG = Object.freeze(${JSON.stringify({ url, publishableKey })});\n`);
+
 console.log(`Extension build created at ${distDir}`);
+console.log(`Supabase accounts: ${url ? "configured" : "not configured (guest mode available)"}`);

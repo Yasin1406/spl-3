@@ -17,7 +17,8 @@
   }
 
   function setEnabled(enabled) {
-    chrome.storage.local.set({ [STORAGE_KEY]: enabled }, () => {
+    chrome.runtime.sendMessage({ type: "BAA_SAVE_PREFERENCES", preferences: { [STORAGE_KEY]: enabled } }, response => {
+      if (chrome.runtime.lastError || response?.error || !response?.saved) { statusText.textContent = "সেটিংস সংরক্ষণ করা যায়নি। আবার চেষ্টা করুন।"; return; }
       render(enabled);
       notifyActiveTab(enabled);
     });
@@ -41,9 +42,18 @@
     });
   }
 
-  chrome.storage.local.get({ [STORAGE_KEY]: false }, (result) => {
+  chrome.runtime.sendMessage({ type: "BAA_GET_PREFERENCES" }, (result) => {
+    if (chrome.runtime.lastError || !result) return;
     render(Boolean(result[STORAGE_KEY]));
   });
+  chrome.storage.onChanged.addListener((changes, area) => {
+    if (area === "local" && changes[STORAGE_KEY]) render(Boolean(changes[STORAGE_KEY].newValue));
+    if (area === "local" && changes.baaAccountStatus) renderAccount(changes.baaAccountStatus.newValue);
+  });
+  function renderAccount(account) {
+    document.getElementById("accountStatus").textContent = account?.signedIn ? `${account.email} — ${account.sync === "synced" ? "পছন্দগুলো সিঙ্ক হয়েছে।" : "সিঙ্ক বাকি আছে।"}` : "অতিথি — পছন্দগুলো শুধু এই ব্রাউজারে থাকবে।";
+  }
+  chrome.runtime.sendMessage({ type: "BAA_GET_ACCOUNT_STATUS" }, response => { if (!chrome.runtime.lastError) renderAccount(response?.account); });
 
   toggleButton.addEventListener("click", () => {
     chrome.storage.local.get({ [STORAGE_KEY]: false }, (result) => {
