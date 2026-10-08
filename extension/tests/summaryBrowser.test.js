@@ -57,6 +57,16 @@ async function browserChecks() {
     check(shadow.getElementById("results").querySelectorAll("li").length <= 5 && !shadow.getElementById("results").textContent.includes("সনাক্ত করা অঞ্চল"), "Summary contains a control inventory");
     shadow.getElementById("close").click();
     check(document.activeElement === focused && !dialog.open, "Closing panel did not restore focus");
+    shortcutChanges.forEach(listener => listener({ baaCustomKeybindings: { newValue: { pageSummary: "Alt+Shift+Q", regionSummary: "Alt+Shift+W" } } }, "local"));
+    const oldBinding = new KeyboardEvent("keydown", { code: "KeyA", altKey: true, shiftKey: true, bubbles: true, cancelable: true });
+    document.dispatchEvent(oldBinding); check(!oldBinding.defaultPrevented && !dialog.open, "Replaced page summary default still acts");
+    press("KeyQ"); await until(() => dialog.open && shadow.getElementById("status").textContent.includes("প্রস্তুত"));
+    check(requests.at(-1).context.scope === "page" && shadow.getElementById("pageButton").getAttribute("aria-keyshortcuts") === "Alt+Shift+Q", "Custom page summary/hint failed");
+    shadow.getElementById("close").click(); focused.focus(); press("KeyW");
+    await until(() => dialog.open && shadow.getElementById("status").textContent.includes("প্রস্তুত"));
+    check(requests.at(-1).context.scope === "region", "Custom region summary failed");
+    shadow.getElementById("close").click(); requests.splice(2);
+    shortcutChanges.forEach(listener => listener({ baaCustomKeybindings: { newValue: {} } }, "local"));
     document.getElementById("inline").focus(); press("KeyS");
     await until(() => requests.length === 3 && shadow.getElementById("status").textContent.includes("প্রস্তুত"));
     check(requests[2].context.scope === "region", "Alt Shift S failed");
@@ -205,9 +215,10 @@ async function browserChecks() {
 test("Chrome summary integration across page types, shortcuts, privacy, focus and cancellation", { skip: !existsSync(chromePath) }, async () => {
   const directory = await mkdtemp(join(tmpdir(), "baa-summary-test-"));
   try {
-    const scripts = await Promise.all(["accessibilityCore", "pageContextCollector", "pageSummaryPlanner", "summaryAssistant"].map(file => readFile(new URL("../src/content/" + file + ".js", import.meta.url), "utf8")));
+    const scripts = await Promise.all(["keybindings", "accessibilityCore", "pageContextCollector", "pageSummaryPlanner", "summaryAssistant"].map(file => readFile(new URL("../src/content/" + file + ".js", import.meta.url), "utf8")));
     const page = join(directory, "summary.html");
-    await writeFile(page, '<!doctype html><html><meta charset="utf-8"><base href="https://summary.test/"><body>' + scripts.map(source => "<script>" + source + "</script>").join("\n") + "<script>(" + browserChecks.toString() + ")();</script></body></html>");
+    const setup = "<script>const shortcutChanges=[];window.chrome={storage:{local:{get(defaults,callback){callback(defaults);}},onChanged:{addListener(callback){shortcutChanges.push(callback);}}}};</script>";
+    await writeFile(page, '<!doctype html><html><meta charset="utf-8"><base href="https://summary.test/"><body>' + setup + scripts.map(source => "<script>" + source + "</script>").join("\n") + "<script>(" + browserChecks.toString() + ")();</script></body></html>");
     const browser = spawnSync(chromePath, ["--headless", "--disable-gpu", "--no-first-run", "--no-default-browser-check", "--disable-background-networking", "--user-data-dir=" + join(directory, "profile"), "--virtual-time-budget=15000", "--dump-dom", pathToFileURL(page).href], { encoding: "utf8", timeout: 45000, maxBuffer: 2_000_000, windowsHide: true });
     assert.ifError(browser.error); assert.equal(browser.status, 0, browser.stderr.slice(-1200));
     const encoded = browser.stdout.match(/<pre id="test-result"[^>]*>([A-Za-z0-9+/=]+)<\/pre>/)?.[1];

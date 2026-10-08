@@ -96,9 +96,11 @@
     }
     function onKey(event) {
       if (!active || event.defaultPrevented || event.repeat || event.ctrlKey || event.metaKey || !event.altKey || !event.shiftKey) return;
-      if (!["KeyA", "KeyS"].includes(event.code)) return;
+      const keys = globalScope.BAA_KEYBINDINGS;
+      const scope = keys ? (keys.matches("pageSummary", event) ? "page" : keys.matches("regionSummary", event) ? "region" : null) : (event.code === "KeyA" ? "page" : event.code === "KeyS" ? "region" : null);
+      if (!scope) return;
       event.preventDefault();
-      invoke(event.code === "KeyA" ? "page" : "region");
+      invoke(scope);
     }
     function paragraph(container, value) {
       const node = documentRef.createElement("p"); node.textContent = value; node.tabIndex = 0; container.append(node); return node;
@@ -200,11 +202,13 @@
     shadow.getElementById("refresh").addEventListener("click", () => invoke(lastScope, regionTarget));
     shadow.getElementById("summarizeRegion").addEventListener("click", () => invoke("region", snapshot?.targets.get(shadow.getElementById("regions").value)));
     dialog.addEventListener("cancel", event => { event.preventDefault(); close(); });
+    let detachHints = [];
     return Object.freeze({ invoke,
       setDetail(value) { if (["brief", "standard", "detailed"].includes(value)) summaryDetail = value; },
       start() {
         if (active) return;
         active = true; documentRef.body.append(host);
+        detachHints = [globalScope.BAA_KEYBINDINGS?.bindHint(shadow.getElementById("pageButton"), "pageSummary"), globalScope.BAA_KEYBINDINGS?.bindHint(shadow.getElementById("regionButton"), "regionSummary")];
         documentRef.addEventListener("focusin", onFocus, true); documentRef.addEventListener("keydown", onKey, true);
         documentRef.defaultView?.addEventListener("pagehide", close);
         documentRef.defaultView?.addEventListener("popstate", close);
@@ -212,6 +216,7 @@
         observer.observe(documentRef.body, { subtree: true, childList: true, characterData: true, attributes: true, attributeFilter: ["aria-invalid", "aria-selected", "aria-expanded", "aria-busy", "hidden", "disabled"] });
       },
       stop() {
+        detachHints.forEach(detach => detach?.()); detachHints = [];
         active = false; observer.disconnect(); close();
         if (invalidationTimer) clearTimeout(invalidationTimer);
         documentRef.removeEventListener("focusin", onFocus, true); documentRef.removeEventListener("keydown", onKey, true); host.remove();

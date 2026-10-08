@@ -23,17 +23,18 @@
       <section aria-labelledby="navigation-heading">
         <h2 id="navigation-heading">পৃষ্ঠায় নেভিগেশন</h2>
         <button id="pageNavigator" type="button">পৃষ্ঠার অংশগুলো</button>
-        <p>কিবোর্ড: <kbd>Alt+Shift+Z</kbd> — ওয়েবপৃষ্ঠায় ফোকাস রেখে চাপুন।</p>
+        <p>কিবোর্ড: <kbd data-shortcut="navigator">Alt+Shift+Z</kbd> — ওয়েবপৃষ্ঠায় ফোকাস রেখে চাপুন।</p>
         <p id="navigationStatus" role="status" aria-live="polite"></p>
       </section>
       <section aria-labelledby="summary-heading">
         <h2 id="summary-heading">বাংলা সারাংশ</h2>
-        <button id="pageSummary" type="button">পৃষ্ঠার সারাংশ — Alt+Shift+A</button>
-        <button id="regionSummary" type="button">ফোকাসের অংশ — Alt+Shift+S</button>
+        <button id="pageSummary" type="button">পৃষ্ঠার সারাংশ — <kbd data-shortcut="pageSummary">Alt+Shift+A</kbd></button>
+        <button id="regionSummary" type="button">ফোকাসের অংশ — <kbd data-shortcut="regionSummary">Alt+Shift+S</kbd></button>
         <p id="summaryStatus" role="status" aria-live="polite"></p>
       </section>
     </main>
 
+    <script src="../content/keybindings.js"></script>
     <script src="popup.js"></script>
   </body>
 </html>

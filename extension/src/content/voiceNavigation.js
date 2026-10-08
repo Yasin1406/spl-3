@@ -108,7 +108,8 @@
     function onKey(event) {
       if (!dialog.open) return;
       if (event.key === "Escape" && requestId) { event.preventDefault(); event.stopImmediatePropagation(); cancel(); return; }
-      if (!detachVoiceShortcut && (event.code === "KeyV" || !event.code && ["v", "V"].includes(event.key)) && event.altKey && event.shiftKey && !event.ctrlKey && !event.metaKey && !event.isComposing) {
+      const voiceMatch = globalScope.BAA_KEYBINDINGS ? globalScope.BAA_KEYBINDINGS.matches("voice", event) : (event.code === "KeyV" || !event.code && ["v", "V"].includes(event.key)) && event.altKey && event.shiftKey && !event.ctrlKey && !event.metaKey && !event.isComposing;
+      if (!detachVoiceShortcut && voiceMatch) {
         event.preventDefault(); event.stopImmediatePropagation(); if (!event.repeat) focusVoiceButton();
       }
     }

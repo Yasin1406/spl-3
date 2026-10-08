@@ -5,6 +5,7 @@ import vm from "node:vm";
 
 const workerSource = await readFile(new URL("../src/background/serviceWorker.js", import.meta.url), "utf8");
 const assistantSource = await readFile(new URL("../src/content/imageAssistant.js", import.meta.url), "utf8");
+const keybindingsSource = await readFile(new URL("../src/content/keybindings.js", import.meta.url), "utf8");
 
 function worker(overrides = {}) {
   const sandbox = vm.createContext({
@@ -97,4 +98,18 @@ test("body focus uses the hovered image, while an explicitly focused image takes
   documentRef.activeElement = first;
   await listeners.get("keydown")(event);
   assert.equal(requests[1].imageUrl, first.src);
+});
+
+test("image OCR and description use custom bindings immediately and ignore replaced defaults", async () => {
+  let change;
+  const listeners = new Map(), requests = [];
+  const image = { src: "https://example.test/image.png", closest: selector => selector === "img" ? image : null };
+  const documentRef = { activeElement: image, addEventListener: (type, callback) => listeners.set(type, callback) };
+  const sandbox = vm.createContext({ chrome: { storage: { local: { get(defaults, callback) { callback(defaults); } }, onChanged: { addListener(callback) { change = callback; } } } } });
+  vm.runInContext(keybindingsSource, sandbox); vm.runInContext(assistantSource, sandbox);
+  sandbox.BAA_IMAGE_ASSISTANT.createImageAssistant({ documentRef, announcer: { announce() {} }, sendMessage: async message => { requests.push(message); throw new Error("IMAGE_FETCH_FAILED"); } }).start();
+  change({ baaCustomKeybindings: { newValue: { imageOcr: "Alt+Shift+1", imageDescription: "Alt+Shift+2" } } }, "local");
+  const press = code => listeners.get("keydown")({ code, altKey: true, shiftKey: true, preventDefault() {} });
+  await press("KeyO"); await press("KeyD"); assert.equal(requests.length, 0);
+  await press("Digit1"); await press("Digit2"); assert.deepEqual(requests.map(message => message.mode), ["ocr", "describe"]);
 });

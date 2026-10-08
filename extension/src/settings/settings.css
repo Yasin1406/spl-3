@@ -10,3 +10,8 @@ input { width: 20px; height: 20px; }
 button { justify-self: start; min-height: 44px; border: 0; border-radius: 6px; padding: 10px 16px; color: #fff; background: #286345; font: inherit; font-weight: 700; }
 button:focus-visible, input:focus-visible { outline: 3px solid #1f6feb; outline-offset: 3px; }
 #saveStatus { min-height: 1.5em; margin: 0; }
+.shortcut-row { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 8px; margin-bottom: 16px; }
+.shortcut-row label { grid-column: 1 / -1; }
+.shortcut-row input { box-sizing: border-box; width: 100%; height: 44px; padding: 8px; font: inherit; }
+.shortcut-row input[aria-invalid="true"] { border: 2px solid #a01818; }
+#keybindingError { color: #a01818; }

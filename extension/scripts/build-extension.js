@@ -38,6 +38,7 @@ const filesToCopy = [
   ["src/content/focusManager.js", "content/focusManager.js"],
   ["src/content/navigationAssistant.js", "content/navigationAssistant.js"],
   ["src/content/navigationShortcut.js", "content/navigationShortcut.js"],
+  ["src/content/keybindings.js", "content/keybindings.js"],
   ["src/content/contentScript.js", "content/contentScript.js"]
 ];
 

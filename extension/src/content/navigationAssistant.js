@@ -33,6 +33,7 @@
     const prefix = `baa-nav-${Math.random().toString(36).slice(2)}-`;
     let sequence = 0, entries = [], previousFocus = null, lastPageFocus = null, active = false, timer = null;
     let detachShortcut = null;
+    let detachHints = [];
     let refreshPending = false;
     const voice = globalScope.BAA_VOICE_NAVIGATION?.createVoiceNavigation({ dialog, shadow, list, category, announcer, documentRef,
       navigate: value => navigate(entries.find(entry => key(entry.element) === value)),
@@ -189,6 +190,7 @@
         if (active) return;
         active = true; documentRef.body.prepend(host); refresh();
         detachShortcut = globalScope.BAA_NAVIGATION_SHORTCUT?.attach(open) || null;
+        detachHints = [globalScope.BAA_KEYBINDINGS?.bindHint(shadow.getElementById("open"), "navigator"), globalScope.BAA_KEYBINDINGS?.bindHint(shadow.getElementById("voiceStart"), "voice")];
         lastPageFocus = model.available(documentRef.activeElement) ? deepFocus() : null;
         documentRef.addEventListener("focusin", onFocus, true);
         documentRef.addEventListener("invalid", onInvalid, true);
@@ -200,6 +202,7 @@
         if (!active) return;
         active = false; observer.disconnect(); clearTimeout(timer); timer = null; close(); voice?.dispose();
         detachShortcut?.(); detachShortcut = null;
+        detachHints.forEach(detach => detach?.()); detachHints = [];
         documentRef.removeEventListener("invalid", onInvalid, true);
         documentRef.removeEventListener("input", onInput, true);
         documentRef.removeEventListener("change", onInput, true);

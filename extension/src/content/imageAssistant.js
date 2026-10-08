@@ -41,18 +41,21 @@
       const target = event.target;
       const image = target?.closest?.("img") || target?.querySelector?.("img");
       if (!isMeaningfulImage(image)) return;
-      announcer.announce("ছবির বর্ণনার জন্য Alt Shift D, ছবির লেখা পড়তে Alt Shift O চাপুন।");
+      const keys = globalScope.BAA_KEYBINDINGS;
+      announcer.announce(`ছবির বর্ণনার জন্য ${keys?.get("imageDescription") || "Alt+Shift+D"}, ছবির লেখা পড়তে ${keys?.get("imageOcr") || "Alt+Shift+O"} চাপুন।`);
     }
 
     async function onKeyDown(event) {
-      if (!event.altKey || !event.shiftKey || !["KeyD", "KeyO"].includes(event.code)) return;
+      const keys = globalScope.BAA_KEYBINDINGS;
+      if (event.repeat || event.isComposing || event.ctrlKey || event.metaKey) return;
+      const mode = keys ? (keys.matches("imageOcr", event) ? "ocr" : keys.matches("imageDescription", event) ? "describe" : null) : (event.altKey && event.shiftKey ? (event.code === "KeyO" ? "ocr" : event.code === "KeyD" ? "describe" : null) : null);
+      if (!mode) return;
       const activeElement = documentRef.activeElement;
       const focusedImage = activeElement?.closest?.("img") ||
         (activeElement !== documentRef.body && activeElement !== documentRef.documentElement ? activeElement?.querySelector?.("img") : null);
       const image = focusedImage || hoveredImage;
       if (!image?.currentSrc && !image?.src) return announcer.announce("বর্ণনা করার জন্য আগে একটি ছবিতে ফোকাস করুন বা মাউস রাখুন।");
       event.preventDefault();
-      const mode = event.code === "KeyO" ? "ocr" : "describe";
       announcer.announce(mode === "ocr" ? "ছবির লেখা পড়া হচ্ছে।" : "ছবির বর্ণনা তৈরি হচ্ছে।");
       try {
         const response = await sendMessage({

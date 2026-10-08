@@ -249,6 +249,24 @@ async function browserChecks() {
     const hash = location.hash; mainLink.click();
     check(document.activeElement === main && location.hash === hash, "Skip link did not focus main safely");
     start.focus(); open();
+    // Saved remaps replace defaults immediately, including native accesskey reservation.
+    shadow.getElementById("close").click();
+    const remappedLink = document.createElement("a"); remappedLink.setAttribute("accesskey", "q z"); document.body.append(remappedLink);
+    changedListeners.forEach(listener => listener({ baaCustomKeybindings: { newValue: { navigator: "Alt+Shift+Q", voice: "Alt+Shift+W" } } }, "local"));
+    await sleep(10);
+    check(remappedLink.getAttribute("accesskey") === "z", "Remapped accesskey was not reserved");
+    check(!press("KeyZ", "Z").defaultPrevented && !dialog.open, "Old navigator binding still acts");
+    check(press("KeyQ", "ক").defaultPrevented && dialog.open, "Custom navigator binding failed");
+    check(shadow.getElementById("open").getAttribute("aria-keyshortcuts") === "Alt+Shift+Q", "Navigator hint is stale");
+    category.focus();
+    check(!press("KeyV", "V").defaultPrevented && shadow.activeElement === category, "Old voice binding still acts");
+    press("KeyW", "W"); check(shadow.activeElement === voiceButton, "Custom voice binding failed");
+    const released = new KeyboardEvent("keyup", { code: "KeyW", key: "w", bubbles: true, cancelable: true }); document.dispatchEvent(released);
+    check(released.defaultPrevented, "Custom voice release leaked");
+    changedListeners.forEach(listener => listener({ baaCustomKeybindings: { newValue: {} } }, "local"));
+    await sleep(10);
+    check(remappedLink.getAttribute("accesskey") === "q", "Reset did not restore/reserve the right accesskeys");
+    remappedLink.remove();
     main.id = "publisher-main";
     changedListeners.forEach(listener => listener({ baaAssistantEnabled: { newValue: false } }, "local"));
     check(!host.isConnected && document.activeElement === start, "Disable did not remove navigator and restore focus");

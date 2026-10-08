@@ -1,4 +1,5 @@
 (function setupPopupControls() {
+  for (const hint of document.querySelectorAll("[data-shortcut]")) globalThis.BAA_KEYBINDINGS?.bindHint(hint, hint.dataset.shortcut);
   const STORAGE_KEY = "baaTranslationEnabled";
   const toggleButton = document.getElementById("toggleButton");
   const statusText = document.getElementById("statusText");

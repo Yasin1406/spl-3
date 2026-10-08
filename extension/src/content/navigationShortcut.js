@@ -3,12 +3,14 @@
   let voiceHandler = null, voiceActive = false;
   let pressed = null;
   const reserved = new Map();
+  const keybindings = globalScope.BAA_KEYBINDINGS;
+  const bindingKey = action => (keybindings?.get(action) || (action === "navigator" ? "Alt+Shift+Z" : "Alt+Shift+V")).split("+").pop().toLowerCase();
   function reserve(element) {
     const current = element.getAttribute("accesskey");
     const previous = reserved.get(element);
     const original = previous && current === previous.applied ? previous.original : current;
     const tokens = (original || "").split(/\s+/).filter(Boolean);
-    const isReserved = token => handler && token.toLowerCase() === "z" || voiceActive && token.toLowerCase() === "v";
+    const isReserved = token => handler && token.toLowerCase() === bindingKey("navigator") || voiceActive && token.toLowerCase() === bindingKey("voice");
     if (!tokens.some(isReserved)) {
       if (previous && current === previous.applied) element.setAttribute("accesskey", original);
       reserved.delete(element); return;
@@ -43,6 +45,7 @@
   }
   function isV(event) { return event.code === "KeyV" || !event.code && ["v", "V"].includes(event.key); }
   function matches(event) {
+    if (keybindings) return keybindings.matches("navigator", event);
     return isZ(event) && event.altKey && event.shiftKey && !event.ctrlKey && !event.metaKey && !event.isComposing;
   }
   function consume(event) { event.preventDefault(); event.stopImmediatePropagation(); }
@@ -50,20 +53,24 @@
     if (!handler) return;
     if (event.type === "keyup") {
       // Modifiers may already have been released when Z is released.
-      if (pressed && (pressed === "z" ? isZ(event) : isV(event))) { consume(event); pressed = null; }
+      if (pressed && (event.code && event.code === pressed.code || !event.code && event.key?.toLowerCase() === pressed.key?.toLowerCase())) { consume(event); pressed = null; }
       return;
     }
-    const voiceMatch = voiceActive && voiceHandler && isV(event) && event.altKey && event.shiftKey && !event.ctrlKey && !event.metaKey && !event.isComposing;
+    const voiceMatch = voiceActive && voiceHandler && (keybindings ? keybindings.matches("voice", event) : isV(event) && event.altKey && event.shiftKey && !event.ctrlKey && !event.metaKey && !event.isComposing);
     if (!matches(event) && !voiceMatch) return;
     consume(event);
     if (event.type === "keydown") {
-      pressed = voiceMatch ? "v" : "z";
+      pressed = { code: event.code, key: event.key };
       if (!event.repeat) (voiceMatch ? voiceHandler : handler)();
     }
   }
   // Installed at document_start, before page capture listeners can claim the gesture.
   for (const type of ["keydown", "keypress", "keyup"]) globalScope.addEventListener(type, onKey, true);
   globalScope.addEventListener("blur", () => { pressed = null; });
+  keybindings?.subscribe(() => {
+    for (const element of [...reserved.keys()]) reserve(element);
+    if (handler) scan(document);
+  });
   globalScope.BAA_NAVIGATION_SHORTCUT = Object.freeze({
     attachVoice(callback) {
       voiceHandler = callback;
@@ -78,7 +85,7 @@
       restore();
       handler = callback;
       // Chromium can activate native access keys before cancellable key handlers run.
-      // Reserve only Z while the assistant is enabled; retain other tokens and authored changes.
+      // Reserve the active binding while enabled; retain other tokens and authored changes.
       scan(document);
       observer.observe(document.documentElement, { subtree: true, childList: true, attributes: true, attributeFilter: ["accesskey"] });
       return () => { if (handler === callback) { handler = null; pressed = null; voiceActive = false; restore(); } };

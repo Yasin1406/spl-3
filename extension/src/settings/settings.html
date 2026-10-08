@@ -13,6 +13,14 @@
 
       <form id="settingsForm">
         <fieldset>
+          <legend>কিবোর্ড শর্টকাট</legend>
+          <p id="shortcutHelp">নিজের শর্টকাট লিখুন বা ঘরে ফোকাস রেখে Alt+Shift এবং একটি ইংরেজি অক্ষর বা সংখ্যা চাপুন। খালি রাখলে ডিফল্ট ব্যবহার হবে। কাস্টম শর্টকাট থাকলে সেই কাজের ডিফল্ট আর কাজ করবে না। একই শর্টকাট দুটি কাজে ব্যবহার করা যাবে না।</p>
+          <p>Chrome-এর পরিচিত সংরক্ষিত শর্টকাট গ্রহণ করা হবে না। Windows, NVDA বা ওয়েবসাইটের সব শর্টকাট স্বয়ংক্রিয়ভাবে পরীক্ষা করা সম্ভব নয়; সেগুলোর সঙ্গে মিল হলে অন্য সমন্বয় বেছে নিন।</p>
+          <div id="keybindingFields"></div>
+          <button id="resetKeybindings" type="button">সব ডিফল্ট শর্টকাট ফিরিয়ে আনুন</button>
+          <p id="keybindingError" role="status" aria-live="polite"></p>
+        </fieldset>
+        <fieldset>
           <legend>নেভিগেশনের অগ্রাধিকার</legend>
           <label class="check-row"><input id="noiseReductionEnabled" type="checkbox" aria-describedby="noiseHelp"> পুনরাবৃত্ত অপ্রয়োজনীয় অংশগুলো গন্তব্যের তালিকায় পরে দেখান</label>
           <p id="noiseHelp">সব অংশে যাওয়া যাবে। সতর্কতা, ফর্মের ভুল, পেমেন্ট, সম্মতি ও আইনি লেখা এবং জরুরি নিয়ন্ত্রণের অগ্রাধিকার কমবে না।</p>
@@ -31,8 +39,8 @@
 
         <fieldset>
           <legend>পৃষ্ঠায় নেভিগেশন</legend>
-          <p>নেভিগেশন খোলার পরে <kbd>Alt+Shift+V</kbd> চাপলে ‘কথা বলা শুরু করুন’ বোতামে ফোকাস যাবে। Enter চাপলে রেকর্ডিং শুরু হবে। গন্তব্যের নাম বা নম্বর বলুন। ‘রেকর্ডিং শেষ করুন’ বোতামে আবার Enter চাপলে রেকর্ডিং শেষ হবে; Escape চাপলে বাতিল। ভয়েস শুধু বর্তমান গন্তব্যের তালিকায় ফোকাস সরায়।</p>
-          <p>পৃষ্ঠার অংশগুলো খুলুন: <kbd>Alt+Shift+Z</kbd>। শর্টকাটটি নির্দিষ্ট। ওয়েবপৃষ্ঠায় ফোকাস রেখে চাপুন।</p>
+          <p>নেভিগেশন খোলার পরে <kbd data-shortcut="voice">Alt+Shift+V</kbd> চাপলে ‘কথা বলা শুরু করুন’ বোতামে ফোকাস যাবে। Enter চাপলে রেকর্ডিং শুরু হবে। গন্তব্যের নাম বা নম্বর বলুন। ‘রেকর্ডিং শেষ করুন’ বোতামে আবার Enter চাপলে রেকর্ডিং শেষ হবে; Escape চাপলে বাতিল। ভয়েস শুধু বর্তমান গন্তব্যের তালিকায় ফোকাস সরায়।</p>
+          <p>পৃষ্ঠার অংশগুলো খুলুন: <kbd data-shortcut="navigator">Alt+Shift+Z</kbd>। ওয়েবপৃষ্ঠায় ফোকাস রেখে চাপুন।</p>
           <p>শিরোনাম, অঞ্চল, ফর্ম ও বর্তমান ভুল বেছে সরাসরি সেখানে যান। পৃষ্ঠার শুরুতে Tab চাপলেও দ্রুত নেভিগেশনের লিংক পাওয়া যাবে।</p>
         </fieldset>
         <fieldset>
@@ -56,7 +64,7 @@
             <input id="imageShortcutGuidanceEnabled" name="imageShortcutGuidanceEnabled" type="checkbox" />
             ছবিতে ফোকাস করলে OCR ও বর্ণনার কিবোর্ড নির্দেশনা শুনুন
           </label>
-          <p>কোনো ছবিতে ফোকাস বা মাউস রেখে <kbd>Alt+Shift+D</kbd> চাপলে ছবির বর্ণনা এবং <kbd>Alt+Shift+O</kbd> চাপলে ছবির লেখা (OCR) বাংলায় শোনা যাবে।</p>
+          <p>কোনো ছবিতে ফোকাস বা মাউস রেখে <kbd data-shortcut="imageDescription">Alt+Shift+D</kbd> চাপলে ছবির বর্ণনা এবং <kbd data-shortcut="imageOcr">Alt+Shift+O</kbd> চাপলে ছবির লেখা (OCR) বাংলায় শোনা যাবে।</p>
         </fieldset>
 
         <fieldset>
@@ -68,10 +76,11 @@
           <p>AI সারাংশের জন্য নির্বাচিত অংশের পরিচ্ছন্ন লেখা বাহ্যিক সেবায় পাঠানো হয়। পৃষ্ঠার HTML বা ঘরে লেখা মান পাঠানো হয় না। ব্যক্তিগত পৃষ্ঠার লেখা পাঠাতে প্রতিবার আলাদা অনুমতি দিতে হবে।</p>
         </fieldset>
         <button type="submit">সেটিংস সংরক্ষণ করুন</button>
-        <p>পৃষ্ঠার সারাংশ: <kbd>Alt+Shift+A</kbd>। ফোকাস থাকা অংশের সারাংশ: <kbd>Alt+Shift+S</kbd>। সারাংশের আকার বদলাতে এই সেটিংস ব্যবহার করুন।</p>
+        <p>পৃষ্ঠার সারাংশ: <kbd data-shortcut="pageSummary">Alt+Shift+A</kbd>। ফোকাস থাকা অংশের সারাংশ: <kbd data-shortcut="regionSummary">Alt+Shift+S</kbd>। সারাংশের আকার বদলাতে এই সেটিংস ব্যবহার করুন।</p>
         <p id="saveStatus" role="status" aria-live="polite"></p>
       </form>
     </main>
+    <script src="../content/keybindings.js"></script>
     <script src="settings.js"></script>
   </body>
 </html>

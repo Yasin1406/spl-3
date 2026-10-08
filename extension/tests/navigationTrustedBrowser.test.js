@@ -14,7 +14,7 @@ test("trusted Chrome key events consume access keys and early site handlers with
   let browser, socket;
   const pending = new Map();
   try {
-    const shortcut = await readFile(new URL("../src/content/navigationShortcut.js", import.meta.url), "utf8");
+    const shortcut = (await readFile(new URL("../src/content/keybindings.js", import.meta.url), "utf8")) + "\n" + (await readFile(new URL("../src/content/navigationShortcut.js", import.meta.url), "utf8"));
     const sources = await Promise.all(["accessibilityCore", "navigationModel", "focusManager", "voiceNavigation", "navigationAssistant"].map(name => readFile(new URL(`../src/content/${name}.js`, import.meta.url), "utf8")));
     const page = join(directory, "trusted.html");
     await writeFile(page, `<!doctype html><html><head><meta charset="utf-8"><script>${shortcut}</script><script>
