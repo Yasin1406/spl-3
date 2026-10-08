@@ -2,6 +2,27 @@
 
 This plan maps `CODEX_IMPLEMENTATION_README_UPDATED.md` onto the audited repository. The goal is a narrow, testable end-to-end prototype. Existing working translation code will be preserved until its replacement is verified.
 
+## 2026-10-08 generic shortcut conflict handling
+
+- Added a document_start shortcut guard for Alt+Shift+Z and consumed all three keyboard phases before page listeners. Trusted Chrome events reproduced native accesskey=z navigation that keydown cancellation alone did not prevent.
+- Added reversible reservation of only Z access-key tokens while the assistant is active, with dynamic updates and author-aware restoration. No site-specific behavior is used. New trusted Chrome coverage checks access keys, early page handlers and unchanged URL; the downloaded W3C survey layout also passed the full extension path.
+
+## 2026-10-08 fixed navigator shortcut
+
+- Replaced customizable command registration and background shortcut lookup with fixed Alt+Shift+Z, as explicitly requested. Window capture handles the physical key synchronously while the webpage has focus. Removed custom shortcut controls and obsolete worker routing test; retained popup opening.
+- Updated the Chrome regression for English/Bangla input, modifier/repeat/composition exclusions and disablement cleanup. The earlier remapping entries below are historical. Physical-key verification on the user's machine remains manual.
+
+## 2026-10-08 navigator shortcut follow-up
+
+- Added a page-level fallback after a reported physical shortcut failure with a working popup. The fallback requests and verifies the actual Chrome assignment instead of hard-coding Alt+Shift+Z, supports physical letter keys on Bangla input layouts, refreshes on return to the page, and removes listeners on disablement.
+- Extended the existing browser/worker regressions for keyboard event delivery, remapping and unassignment; all 27 tests pass. Original physical-key failure is not reproduced; retest on the user's Chrome/Windows setup after extension reload and page refresh. Background delivery errors are now logged without page data.
+
+## 2026-10-08 region navigator implementation
+
+- Implemented `navigationModel.js`, `focusManager.js` and `navigationAssistant.js`, integrated into the assistant lifecycle, manifest/build, Chrome command routing, popup and settings. Alt+Shift+Z is the suggested default; Chrome manages remapping so a remapped shortcut does not leave a hard-coded old handler active.
+- Native category/destination controls list reliable authored regions, headings, forms and reported validation errors. Generated skip links provide main/first-heading/search/form/error jumps. Focus remains user initiated; stale targets, active modals, dynamic selection retention, prior-focus restoration and reversible cleanup are covered.
+- All 27 extension tests pass, including three headless Chrome regressions. A navigation fixture and manual Chrome/NVDA checklist are available. Remaining Phase 6 work is manual NVDA/real-site acceptance and reliable missing-landmark repair; page summaries were already implemented in the preceding entry. Earlier phase status tables below describe the historical audit.
+
 ## 2026-10-08 page and focused-region summary implementation
 
 - Added a site-independent region collector/planner across articles, search/list pages, forms, products, tables/dashboard layouts and unfamiliar pages. The dialog leads with a Bangla gist and at most five useful links/actions. Main descendants share the same task. Semantic/document roles, headings, prose concentration and link density infer unmarked articles and supporting content while preserving data tables; no hostname or site CSS selectors are used. Independent ambiguous regions offer selection; fallback is a brief page introduction.

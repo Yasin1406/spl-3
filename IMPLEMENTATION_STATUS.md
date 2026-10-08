@@ -1,5 +1,35 @@
 # Implementation Status
 
+## 2026-10-08 — Generic navigator shortcut conflicts
+
+- Reproduced unintended page navigation using trusted Chrome input events and a generic accesskey=z link: native access-key activation can occur despite cancelling the keydown event.
+- Added `navigationShortcut.js` at document_start. It consumes only the reserved Alt+Shift+Z gesture across keydown/keypress/keyup before page listeners, including repeats and keyup after modifier release. The navigator remains a fixed shortcut with no custom-command UI.
+- While enabled, temporarily reserve only Z tokens in authored accesskey attributes. Retain other tokens, handle dynamically added/changed keys and restore authored values on disablement without overwriting later page changes. No site-specific selectors or hostname rules were added.
+- Added trusted Chrome regression coverage for native access-key conflicts, early page handlers, unchanged URL, dynamic access-key tokens and rollback. The downloaded public W3C survey layout passes with the full extension and trusted keys. Live-site/NVDA retesting remains manual.
+- Syntax checks, all 27 tests and the production build pass. Additional integration checks inject the complete content-script code into live W3C survey and Wikipedia Accessibility pages; trusted Chrome key events open the dialog with unchanged page URLs. Physical keyboard/NVDA verification remains manual.
+
+## 2026-10-08 — Fixed Alt+Shift+Z navigator shortcut
+
+- At the user's request, replaced the custom Chrome command and assignment-aware fallback with a fixed Alt+Shift+Z handler. A window capture listener opens the dialog synchronously on the webpage, without background command delivery or shortcut lookup. Physical KeyZ supports English/Bangla layouts; extra Ctrl/Meta modifiers, repeats and composition are ignored.
+- Removed navigator command registration, background routing/assignment lookup and custom-shortcut settings. Popup and settings advertise the fixed shortcut; the popup button remains available. The obsolete command-worker test was removed and the existing Chrome regression now verifies fixed-key behavior and cleanup. Historical entries below describe superseded implementations.
+- Physical shortcut behavior on the user's installation still requires retesting after extension reload and webpage refresh. This is a webpage shortcut, not a browser-wide or global command.
+- Extension syntax checks, all 26 tests (including three headless Chrome regressions) and the production build pass.
+
+## 2026-10-08 — Navigator shortcut delivery follow-up
+
+- Investigated the report that assigned Alt+Shift+Z did not open the navigator while the popup worked, regardless of NVDA. Command registration and background routing were present; the exact physical-event failure was not reproduced.
+- Added a page-level keyboard fallback using the Chrome command's actual assignment from a new `BAA_GET_NAVIGATOR_SHORTCUT` message. Physical letter matching supports Bangla input; current assignments are revalidated before opening, with refresh on visibility/window focus. Remapped or unassigned shortcuts do not continue opening the navigator, and disablement removes the listener.
+- Background-to-page delivery failures now produce a content-free extension warning. Extended Chrome regression to exercise key events, Bangla layout, remapping and unassignment; all 27 extension tests pass. Physical key delivery on the user's Chrome/Windows installation remains to be retested after reload.
+
+## 2026-10-08 — Region navigator and safe focus movement
+
+- Added a Bangla native dialog with categorized landmarks, heading levels, forms/search and current errors; duplicate region names are numbered and entries remain in document order. Native validation failures are included after an invalid event, without reading field values; resolved errors disappear.
+- Registered the Chrome `open-navigator` command with default Alt+Shift+Z. Users can remap/unassign it through Chrome's shortcut manager, linked from settings. Popup/settings display the actual assignment; the popup and focus-visible page toolbar offer buttons as well.
+- Added focus-visible generated skip links for main content, the first heading, search, a form and current errors when reliable destinations exist. Activation moves focus without changing the URL hash. Forms use their first enabled visible field; linked error messages use their invalid field.
+- Added a focus manager that preserves existing tabindex and temporarily uses tabindex=-1 for otherwise unfocusable destinations. Escape restores prior focus; missing targets and active page modals are handled without stealing focus. Dynamic list updates preserve selection. Disablement removes owned UI/listeners/IDs and temporary focus attributes without overwriting a publisher's changed ID.
+- Extension syntax checks and all 27 tests pass, including a new headless Chrome navigator integration and command-routing test. Existing article/summary regressions pass. Physical shortcut assignment, Bangla keyboard layouts and actual NVDA speech/browse-cursor acceptance remain manual; see `docs/navigation-acceptance.md` and `tests/fixtures/navigation-accessibility.html`.
+- FR-12's region list, generated skip links and safe focus workflows now have working code. The broader FR-12 remains PARTIAL pending manual NVDA verification and conservative missing-landmark repair. Cross-origin frames and closed shadow roots remain outside this navigator's coverage. Existing heading/reading-block Tab support is preserved.
+
 Status values: `NOT_STARTED`, `PARTIAL`, `IMPLEMENTED`, `BLOCKED`, `DEFERRED`.
 
 ## 2026-10-08 — Bangla page and focused-region summaries
