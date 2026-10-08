@@ -1,5 +1,76 @@
 # Implementation Status
 
+## 2026-10-09 — Preserve voice label accessibility identity
+
+- Following the continuing NVDA “unavailable” report, confirmed source and built voice controls no longer set disabled/aria-disabled. The exact NVDA announcement source remains unconfirmed; requested Speech Viewer output and reload confirmation.
+- Voice state labels now update the existing text node rather than replacing it. Chrome checks verify both button and StaticText accessibility identities stay stable through startup, recording and processing while native Enter and duplicate-activation guards continue to work. This is an accessibility stability improvement, not confirmation that the reported NVDA announcement is resolved.
+
+## 2026-10-09 — Remove misleading voice “unavailable” announcements
+
+- Removed aria-disabled from the focused voice button during microphone startup and resolution. The button now exposes a Bangla progress label and stays focused/available; internal stage guards still prevent repeated Enter/click activation. This supersedes the aria-disabled behavior described below.
+- Manual stop restores polite status announcements before reporting processing. All 37 extension tests pass, including Chrome accessibility-tree checks at startup, recording and processing, plus trusted repeated-Enter checks. Syntax checks and rebuild pass; actual NVDA speech requires a manual recheck.
+
+## 2026-10-09 — Voice button focus and stable destinations
+
+- Alt+Shift+V now focuses the voice button without recording. Enter starts capture; the same focused button becomes “রেকর্ডিং শেষ করুন”, and Enter stops capture and submits it. Acquisition/processing use aria-disabled with activation guards to retain focus.
+- Background page mutations no longer cancel active voice requests. The displayed list and entry identities stay fixed during capture/resolution; pending updates resume on idle. Unchanged lists retain their option nodes. Explicit category/selection changes still cancel, and targets are checked again before focus.
+- Destination focus now applies a visible outline, restoring prior inline styles on blur/cleanup while preserving later author changes. Native Enter behavior remains available on controls; headings/regions remain reading targets.
+- All 37 extension tests pass, including trusted Chrome Enter start/stop, retained focus, background mutation stability, deferred refresh, removed-target rejection and outline restoration. Syntax checks and production rebuild pass. Real NVDA acceptance remains manual.
+
+## 2026-10-09 — Short voice references for every destination type
+
+- Replaced the resolver prompt with version 2, accepting short type labels, distinctive title fragments, familiar synonyms, punctuation/number variants and phonetic English names across every destination category. Users need not speak a full title or navigation verb.
+- Heading numbers refer to heading levels; explicit destination ordinals refer to the displayed list. Non-heading type numbers use duplicate markers or count that type in displayed order. Broad type requests choose the first matching displayed entry, including several H1s for “শিরোনাম এক”; unrelated, absent, conflicting or equally plausible partial-name requests still return no_match.
+- Added a reproducible, explicit live evaluation script and synthetic fixture. All 13 live cases passed: the user's punctuated H1 example, search, forms, navigation, main content, header/footer, named region, validation error, list ordinal, absent heading, unrelated speech and unsupported submission. All 36 backend regression tests and syntax checks pass. These synthetic checks do not guarantee arbitrary real-page recognition accuracy.
+
+## 2026-10-09 — Resolver return logging
+
+- At the user's request, terminal diagnostics now include the actual resolver JSON before validation, matched destination label, bounded/escaped malformed response text, and skipped-resolution reasons. Existing failure/HTTP/quota diagnostics remain. Unknown IDs are logged then rejected; logging does not change navigation behavior.
+- Verified service syntax and all nine voice backend tests.
+
+## 2026-10-09 — Resolver quota failure and compact voice controls
+
+- Reproduced successful transcription followed by Gemini resolver HTTP 429 RESOURCE_EXHAUSTED using synthetic “শিরোনাম এক” and heading labels. Gemini 3.1 Flash Lite accepted the same request and selected the listed H1. Changed the resolver default and the local resolver model field from gemini-3.8-flash to gemini-3.1-flash-lite; transcription and provider keys remain unchanged. Availability under future quota pressure is not guaranteed.
+- Added resolver terminal diagnostics and specific Bangla quota/timeout/invalid-response messages instead of the generic service failure. Clarified that “শিরোনাম এক” means an H1 label while an explicit destination number refers to the displayed ordinal; ambiguous headings still return no_match.
+- Removed the requested voice help paragraph and its button description reference from the navigator. Microphone setup retains the transmission explanation.
+- Validation: backend syntax check and all 36 tests, extension syntax check and all 37 tests including Chrome voice/error/markup cases, production build and diff check pass. Live synthetic Flash Lite resolution passed. Real microphone/site acceptance remains pending.
+
+## 2026-10-08 — Voice transcription terminal diagnostics
+
+- At the user's explicit request, the backend now prints each successful transcription and its provider to the server terminal before resolution, including empty or negative commands. Silence is reported separately. JSON escaping prevents transcript control characters from affecting the terminal; Bangla remains readable. No audio logging or transcript cache was added.
+- Verified with the eight existing backend voice tests and JavaScript syntax check. This supersedes the earlier statement that transcripts are not logged locally.
+
+## 2026-10-08 — FR-13 navigator voice input
+
+### Completed
+- Added navigator recording controls and scoped Alt+Shift+V; Alt+Shift+Z still opens navigation without recording. Displayed destinations are numbered. First-use extension-origin microphone setup, bounded offscreen capture, mono PCM WAV conversion, manual/automatic stop, cancellation and track release are implemented.
+- Implemented the user's revised plan: ordered Gemini → Speechmatics → Sarvam transcription fallback on service failure; Gemini receives the transcript and displayed destinations, tolerates phonetic/spelling/transliteration errors, and returns a listed ID or no_match. A valid match directly invokes existing safe focus movement without an additional confirmation. No strict local label-matching gate and no changes to translation provider policy.
+- Backend/worker/content validation prevents generated selectors/actions or unlisted IDs. Silence/common negation rejection, request limits, current-list validation, frame/tab-scoped cancellation, late-result invalidation and external-data disclosure are implemented. Voice keys stay backend-only; audio/transcripts are not logged or cached locally.
+
+### Changed files
+- `extension/src/content/voiceNavigation.js`, navigator/shortcut integration, `extension/src/voice/`, worker, manifest, build and settings.
+- `backend/src/routes/voiceNavigation.js`, `backend/src/services/providerVoiceNavigation.js`, `backend/src/validators/voiceNavigation.js`, app/server/check wiring and backend setup.
+- `ai/prompts/voice-destination-v1.txt`, `.env.example`, voice unit/browser/worker/capture tests and `docs/voice-navigation.md`.
+
+### Tests run
+- Backend: 35 tests pass, including PCM/request bounds, fuzzy resolver contract, all STT adapters/fallback, negation/no_match, cancellation, invalid IDs and endpoint limits.
+- Extension: 37 tests pass, including capture/track release, immediate/late permission cancellation, tab-scoped worker lifecycle and Chrome navigator voice integration. Chrome tests require approved execution outside the sandbox because sandboxed GPU startup fails.
+- Live Gemini resolver accepted an imperfect synthetic Bangla command and selected the supplied Personal tools destination. Earlier testing found a 404 for configured gemini-2.5-flash; voice defaults/local model fields now use gemini-3.8-flash. Transient provider errors/timeouts also occurred; no real microphone accuracy claim is made.
+
+### Current feature status
+| Feature | Status | Notes |
+|---|---|---|
+| FR-13 limited Bangla voice commands | PARTIAL | Navigator voice path implemented; real microphone/NVDA, all live STT providers and representative-site acceptance remain. Description voice intents remain deferred. |
+
+### Known issues
+- Provider recognition and wrong near-match rates require user recordings; model confidence is not a reliable action gate. This user-requested flow directly focuses a matched listed target.
+- Cross-origin frames and closed shadow roots retain existing inventory limitations. Speechmatics batch latency/remote deletion and permissions depend on provider/browser behavior.
+
+### Next recommended task
+- Reload the built extension, restart the backend, and execute the microphone/NVDA checklist in `docs/voice-navigation.md` using individual destination commands.
+
+This entry supersedes the historical FR-13 DEFERRED status below.
+
 ## 2026-10-08 — FR-15/FR-16 protected navigation priority
 
 - FR-15 and FR-16: `PARTIAL` pending manual Chrome/NVDA and representative-site acceptance. Implemented an opt-in, default-off `baaNoiseReductionEnabled` setting and deterministic local protection/noise classifiers. No backend or AI dependency.

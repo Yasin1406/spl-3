@@ -1,5 +1,7 @@
 # Codex Implementation Guide  
 
+> FR-13 navigation voice update (2026-10-08): implemented the user's revised plan with on-demand recording inside the Alt+Shift+Z navigator, scoped Alt+Shift+V, Gemini/Speechmatics/Sarvam transcription fallback and Gemini fuzzy resolution against the displayed destination list. A validated listed destination is focused directly; no_match leaves navigation open. No arbitrary generated browser actions are allowed. This slice remains PARTIAL pending real microphone/NVDA/provider acceptance; description voice commands remain deferred. See `docs/voice-navigation.md` and `IMPLEMENTATION_STATUS.md`.
+
 > FR-15/FR-16 implementation update (2026-10-08): the extension now includes default-off, local heuristic noise classification for its guided region navigator. Qualifying promotional regions appear later and remain individually reachable; publisher content is not hidden, deleted or changed. Protected-content checks override scores and propagate through containing inventoried regions. Settings, dynamic reclassification and automated browser/unit verification are implemented. Manual NVDA and representative-site acceptance remain pending; see `IMPLEMENTATION_STATUS.md` and `docs/navigation-acceptance.md` for the exact policy and limitations.
 ## AI-Driven Bangla Web Accessibility Assistant for Visually Impaired Users
 

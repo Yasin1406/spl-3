@@ -1,5 +1,37 @@
 # Implementation Plan
 
+## 2026-10-09 voice focus and destination stability
+
+- Implemented Alt+Shift+V as button focus, with native Enter activation to start/stop recording. Retain focus through acquisition, recording and processing.
+- Freeze displayed destinations and entry identities during voice requests, defer background recollection until idle, and preserve option nodes when nothing changes. Explicit user list/category changes still invalidate a request; removed or hidden targets remain unavailable.
+- Add reversible visible destination outlines without changing native activation behavior. Extend browser coverage for focus, trusted Enter and page mutations; NVDA checks remain manual.
+
+## 2026-10-09 general short destination references
+
+- Resolver prompt v2 now supports abbreviated labels and names for every destination type, with semantic/phonetic matching and punctuation/number normalization. Full titles and navigation verbs are optional. Broad type requests choose the first matching displayed entry; explicit ordinals, absent destinations and unrelated/conflicting requests retain clear handling.
+- Added a synthetic live resolver evaluation covering all categories and no-match cases; all 13 passed. Backend checks and 36 regression tests pass. Restart the backend to load the new prompt; the extension UI and action validation are unchanged.
+
+## 2026-10-09 resolver return logging
+
+- Added requested terminal visibility for raw resolver verdicts, matched labels, malformed output and skipped requests. Validation still rejects unsupported IDs/actions. Existing failure diagnostics remain; voice backend tests pass.
+
+## 2026-10-09 voice resolver follow-up
+
+- Reproduced resolver quota exhaustion after successful transcription. Moved destination resolution to Gemini 3.1 Flash Lite after a successful live synthetic H1 test; retain transcription model/provider order. Added stage-specific terminal diagnostics and Bangla quota/timeout/response errors.
+- Clarified heading-level requests versus explicit destination ordinals. Removed the requested navigator voice help paragraph and stale aria-describedby. Setup still explains external transmission; bounded capture, ID validation and direct focus behavior are unchanged.
+- Backend/extension checks, regression suites and rebuild verify the follow-up. Actual microphone/site accuracy remains manual.
+
+## 2026-10-08 voice terminal diagnostics
+
+- Added user-requested backend terminal output for the STT provider and recognized transcript, before resolution. Empty/negative commands and silence are visible; control characters are escaped. No audio is logged. This explicitly supersedes the earlier no-transcript-logging policy for terminal diagnostics.
+
+## 2026-10-08 FR-13 navigator voice implementation
+
+- Implemented the user's revised voice plan: microphone controls inside the navigator, numbered displayed destinations, scoped Alt+Shift+V, extension-origin permission setup and offscreen capture bounded to ten seconds. Alt+Shift+Z alone does not start capture.
+- Added a dedicated voice endpoint with Gemini → Speechmatics → Sarvam transcription service fallback and a Gemini resolver that accepts imperfect spelling/phonetics/transliteration. The resolver receives exactly the transcript and current destination IDs/labels/numbers and may return no_match. A valid listed ID directly focuses its destination; no extra confirmation is required by the revised plan.
+- Preserve translation's Groq → Mistral → Cerebras chain. Audio/transcripts are temporary, keys backend-only; no model-generated actions/selectors or form values. Cancel/invalidate on close, Escape, list/category/selection changes, navigation and disablement.
+- Backend/extension unit, capture/worker and Chrome navigator tests cover the new path. Live synthetic fuzzy destination resolution succeeded with gemini-3.8-flash. FR-13 remains PARTIAL pending real microphone/NVDA and provider/representative-site acceptance; description intents remain deferred. See `docs/voice-navigation.md`.
+
 ## 2026-10-08 FR-15/FR-16 implementation
 
 - Added `contentProtection.js` and `noiseClassifier.js`, loaded before navigation integration and copied into the production extension. Protection takes precedence over scores and propagates to descendants of protected inventoried regions.
