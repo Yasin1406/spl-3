@@ -36,6 +36,8 @@
         "content/pageSummaryPlanner.js",
         "content/summaryAssistant.js",
         "content/navigationModel.js",
+        "content/contentProtection.js",
+        "content/noiseClassifier.js",
         "content/focusManager.js",
         "content/navigationAssistant.js",
         "content/contentScript.js"

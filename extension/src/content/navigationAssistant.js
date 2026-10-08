@@ -1,6 +1,6 @@
 (function registerNavigationAssistant(globalScope) {
   const model = globalScope.BAA_NAVIGATION_MODEL;
-  function createNavigationAssistant({ documentRef = document, announcer }) {
+  function createNavigationAssistant({ documentRef = document, announcer, noiseReductionEnabled = false }) {
     const host = documentRef.createElement("div");
     host.dataset.baaOwned = "true";
     host.dataset.baaNavigator = "true";
@@ -32,6 +32,16 @@
     let detachShortcut = null;
     function key(element) { if (!ids.has(element)) ids.set(element, String(++sequence)); return ids.get(element); }
     function selectedEntry() { return entries.find(entry => key(entry.element) === list.value); }
+    function collectEntries() {
+      const collected = model.collect(documentRef, reportedErrors);
+      if (!noiseReductionEnabled || !globalScope.BAA_NOISE_CLASSIFIER) return collected;
+      const focusedElement = lastPageFocus && ![documentRef.body, documentRef.documentElement].includes(lastPageFocus) ? lastPageFocus : null;
+      const classified = globalScope.BAA_NOISE_CLASSIFIER.classify(collected, { focusedElement });
+      // Stable partition: every destination remains available, including low-priority regions.
+      return [...classified.filter(entry => !entry.lowPriority), ...classified.filter(entry => entry.lowPriority)].map(entry => ({
+        ...entry, label: entry.label + (entry.lowPriority ? " — কম অগ্রাধিকার" : "")
+      }));
+    }
     function renderList() {
       const selected = list.value;
       const filtered = entries.filter(entry => category.value === "all" || entry.category === category.value);
@@ -72,7 +82,7 @@
       timer = null;
       if (!active) return;
       for (const element of reportedErrors) if (!element.isConnected || element.validity?.valid) reportedErrors.delete(element);
-      entries = model.collect(documentRef, reportedErrors);
+      entries = collectEntries();
       // Avoid replacing a focused skip link on live updates.
       if (!shadow.querySelector("nav").contains(shadow.activeElement)) renderSkips();
       if (dialog.open) renderList();
@@ -83,7 +93,10 @@
       return element;
     }
     function onFocus(event) {
-      if (model.available(event.target)) lastPageFocus = deepFocus();
+      if (model.available(event.target)) {
+        lastPageFocus = deepFocus();
+        if (noiseReductionEnabled && !timer) timer = setTimeout(refresh, 150);
+      }
     }
     function close(restore = true) {
       if (!dialog.open) return;
@@ -105,10 +118,16 @@
         announcer?.announce("বর্তমান ডায়ালগ বন্ধ করে পৃষ্ঠার অংশগুলো খুলুন।"); return false;
       }
       previousFocus = deepFocus();
-      entries = model.collect(documentRef, reportedErrors); renderList();
+      entries = collectEntries(); renderList();
       dialog.showModal(); category.focus(); return true;
     }
     function navigate(entry) {
+      // Recheck current protection before acting on a possibly stale list entry.
+      if (noiseReductionEnabled) {
+        const element = entry?.element;
+        entries = collectEntries();
+        entry = entries.find(candidate => candidate.element === element);
+      }
       const target = model.destination(entry, documentRef);
       if (!target) {
         if (dialog.open) { refresh(); status.textContent = "গন্তব্যটি আর পাওয়া যাচ্ছে না। অন্য অংশ বেছে নিন।"; }
@@ -135,7 +154,7 @@
       if (!timer) timer = setTimeout(refresh, 150);
     }
     function onInput(event) {
-      if (reportedErrors.has(event.target) && !timer) timer = setTimeout(refresh, 150);
+      if ((noiseReductionEnabled || reportedErrors.has(event.target)) && !timer) timer = setTimeout(refresh, 150);
     }
     category.addEventListener("change", renderList);
     shadow.getElementById("open").addEventListener("click", open);
@@ -146,6 +165,10 @@
     shadow.querySelector("nav").addEventListener("focusout", () => { if (!timer) timer = setTimeout(refresh, 150); });
     return Object.freeze({
       open,
+      setNoiseReductionEnabled(enabled) {
+        noiseReductionEnabled = enabled === true;
+        refresh();
+      },
       start() {
         if (active) return;
         active = true; documentRef.body.prepend(host); refresh();
@@ -155,7 +178,7 @@
         documentRef.addEventListener("invalid", onInvalid, true);
         documentRef.addEventListener("input", onInput, true);
         documentRef.addEventListener("change", onInput, true);
-        observer.observe(documentRef.documentElement, { subtree: true, childList: true, characterData: true, attributes: true, attributeFilter: ["id", "role", "aria-level", "aria-label", "aria-labelledby", "aria-invalid", "aria-describedby", "aria-errormessage", "hidden", "inert", "aria-hidden", "style", "class", "disabled"] });
+        observer.observe(documentRef.documentElement, { subtree: true, childList: true, characterData: true, attributes: true, attributeFilter: ["id", "role", "aria-level", "aria-label", "aria-labelledby", "aria-invalid", "aria-describedby", "aria-errormessage", "aria-live", "aria-modal", "title", "name", "autocomplete", "type", "required", "pattern", "min", "max", "minlength", "maxlength", "href", "hidden", "inert", "aria-hidden", "style", "class", "disabled"] });
       },
       stop() {
         if (!active) return;

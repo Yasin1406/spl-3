@@ -8,9 +8,11 @@
   const imageShortcutGuidanceEnabled = document.getElementById("imageShortcutGuidanceEnabled");
   const aiSummaryEnabled = document.getElementById("aiSummaryEnabled");
   const summaryDetail = document.getElementById("summaryDetail");
+  const noiseReductionEnabled = document.getElementById("noiseReductionEnabled");
   const defaults = { baaAssistantEnabled: true, baaFormGuidanceEnabled: true, baaTranslationVerbosity: "balanced", baaAiTranslationEnabled: true, baaImageShortcutGuidanceEnabled: true, baaAiSummaryEnabled: true, baaSummaryDetail: "standard" };
 
-  chrome.storage.local.get(defaults, (values) => {
+  chrome.storage.local.get({ ...defaults, baaNoiseReductionEnabled: false }, (values) => {
+    noiseReductionEnabled.checked = values.baaNoiseReductionEnabled === true;
     enabled.checked = Boolean(values.baaAssistantEnabled);
     formGuidanceEnabled.checked = Boolean(values.baaFormGuidanceEnabled);
     aiEnabled.checked = Boolean(values.baaAiTranslationEnabled);
@@ -24,6 +26,7 @@
     event.preventDefault();
     chrome.storage.local.set({
       baaAssistantEnabled: enabled.checked,
+      baaNoiseReductionEnabled: noiseReductionEnabled.checked,
       baaFormGuidanceEnabled: formGuidanceEnabled.checked,
       baaAiTranslationEnabled: aiEnabled.checked,
       baaTranslationVerbosity: translationVerbosity.value || "balanced",

@@ -28,6 +28,8 @@ const filesToCopy = [
   ["src/content/pageSummaryPlanner.js", "content/pageSummaryPlanner.js"],
   ["src/content/summaryAssistant.js", "content/summaryAssistant.js"],
   ["src/content/navigationModel.js", "content/navigationModel.js"],
+  ["src/content/contentProtection.js", "content/contentProtection.js"],
+  ["src/content/noiseClassifier.js", "content/noiseClassifier.js"],
   ["src/content/focusManager.js", "content/focusManager.js"],
   ["src/content/navigationAssistant.js", "content/navigationAssistant.js"],
   ["src/content/navigationShortcut.js", "content/navigationShortcut.js"],

@@ -31,6 +31,7 @@
   let translationGeneration = 0;
   let imageShortcutGuidanceEnabled = true;
   let summaryDetail = "standard";
+  let noiseReductionEnabled = false;
 
   function startTranslation() {
     if (translationObserver) return;
@@ -52,7 +53,8 @@
 
   function startAssistant(formGuidanceEnabled = true) {
     if (typeof formGuidanceEnabled !== "boolean") {
-      chrome.storage.local.get({ [FORM_GUIDANCE_KEY]: true, [IMAGE_GUIDANCE_KEY]: true, baaSummaryDetail: "standard" }, (state) => {
+      chrome.storage.local.get({ [FORM_GUIDANCE_KEY]: true, [IMAGE_GUIDANCE_KEY]: true, baaSummaryDetail: "standard", baaNoiseReductionEnabled: false }, (state) => {
+        noiseReductionEnabled = state.baaNoiseReductionEnabled === true;
         imageShortcutGuidanceEnabled = Boolean(state[IMAGE_GUIDANCE_KEY]);
         summaryDetail = state.baaSummaryDetail;
         startAssistant(Boolean(state[FORM_GUIDANCE_KEY]));
@@ -70,7 +72,7 @@
     summaryAssistant.start();
     if (formGuidanceEnabled) startFormGuidance();
     analyze(document);
-    navigationAssistant = navigationAssistantFactory.createNavigationAssistant({ documentRef: document, announcer: liveRegion });
+    navigationAssistant = navigationAssistantFactory.createNavigationAssistant({ documentRef: document, announcer: liveRegion, noiseReductionEnabled });
     navigationAssistant.start();
     accessibilityObserver = createAccessibilityObserver();
   }
@@ -264,7 +266,8 @@
     return issues.reduce((counts, entry) => ({ ...counts, [entry.reasonCode]: (counts[entry.reasonCode] || 0) + 1 }), {});
   }
 
-  chrome.storage.local.get({ [TRANSLATION_KEY]: false, [ASSISTANT_KEY]: true, [FORM_GUIDANCE_KEY]: true, [IMAGE_GUIDANCE_KEY]: true, baaSummaryDetail: "standard" }, (state) => {
+  chrome.storage.local.get({ [TRANSLATION_KEY]: false, [ASSISTANT_KEY]: true, [FORM_GUIDANCE_KEY]: true, [IMAGE_GUIDANCE_KEY]: true, baaSummaryDetail: "standard", baaNoiseReductionEnabled: false }, (state) => {
+    noiseReductionEnabled = state.baaNoiseReductionEnabled === true;
     imageShortcutGuidanceEnabled = Boolean(state[IMAGE_GUIDANCE_KEY]);
     summaryDetail = state.baaSummaryDetail;
     if (state[TRANSLATION_KEY]) startTranslation();
@@ -273,6 +276,10 @@
 
   chrome.storage.onChanged.addListener((changes, areaName) => {
     if (areaName !== "local") return;
+    if (changes.baaNoiseReductionEnabled) {
+      noiseReductionEnabled = changes.baaNoiseReductionEnabled.newValue === true;
+      navigationAssistant?.setNoiseReductionEnabled(noiseReductionEnabled);
+    }
     if (changes.baaSummaryDetail) { summaryDetail = changes.baaSummaryDetail.newValue; summaryAssistant?.setDetail(summaryDetail); }
     if (changes[TRANSLATION_KEY]) changes[TRANSLATION_KEY].newValue ? startTranslation() : stopTranslation();
     if (changes[ASSISTANT_KEY]) changes[ASSISTANT_KEY].newValue ? startAssistant(undefined) : stopAssistant();

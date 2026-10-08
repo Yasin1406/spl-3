@@ -84,6 +84,74 @@ async function browserChecks() {
     native.value = "Resolved"; native.dispatchEvent(new Event("input", { bubbles: true }));
     await sleep(250); open(); selectCategory("errors");
     check(![...list.options].some(option => option.textContent.includes("Native required")), "Resolved native error remained");
+    // FR-15/16: exercise actual DOM classifiers and the settings/list lifecycle.
+    selectCategory("all");
+    const noiseFixture = document.createElement("div");
+    noiseFixture.innerHTML = `<aside class="sponsored" aria-label="Promo first"><h2>Offers</h2><a href="#one">One</a><a href="#two">Two</a></aside>
+      <aside class="sponsored" aria-label="Promo second"><h2>Offers</h2><a href="#one">One</a><a href="#two">Two</a></aside>
+      <aside aria-label="Ordinary sidebar">Useful reading</aside>
+      <aside id="address-book" aria-label="Address directory">Directory</aside>
+      <footer aria-label="Plain footer">About us</footer>
+      <aside class="sponsored" aria-label="Critical security"><p>Security warning</p></aside>
+      <aside class="sponsored" aria-label="Critical error"><div role="alert">Unable to proceed</div></aside>
+      <aside class="sponsored" aria-label="Critical payment"><p>Payment total: 500</p></aside>
+      <aside class="sponsored" aria-label="Critical consent"><p>Consent to data collection</p></aside>
+      <aside class="sponsored" aria-label="Critical legal"><p>Terms and conditions</p></aside>
+      <aside class="sponsored" aria-label="Critical authentication"><input type="password"></aside>
+      <aside class="sponsored" aria-label="Critical task"><button>Continue</button></aside>
+      <aside class="sponsored" aria-label="Critical Bangla"><p>নিরাপত্তা সতর্কতা। পেমেন্ট ও সম্মতি।</p></aside>
+      <aside class="sponsored" aria-label="Referenced block" aria-describedby="outside-notice">Offers</aside>
+      <p id="outside-notice">Legal instructions</p>`;
+    document.body.append(noiseFixture);
+    for (const field of noiseFixture.querySelectorAll("input")) Object.defineProperty(field, "value", { get() { throw new Error("Noise classification read a value"); } });
+    await until(() => [...list.options].some(option => option.textContent.includes("Promo first")));
+    const originalOrder = [...list.options].map(option => option.value);
+    const selectedNoise = [...list.options].find(option => option.textContent.includes("Promo first"));
+    const authoredMarkup = noiseFixture.innerHTML;
+    list.value = selectedNoise.value;
+    const setNoise = enabled => changedListeners.forEach(listener => listener({ baaNoiseReductionEnabled: { newValue: enabled } }, "local"));
+    setNoise(true);
+    check(list.value === selectedNoise.value, "Enabling noise reduction lost selection");
+    check(list.options.length === originalOrder.length, "Noise reduction removed destinations");
+    check(noiseFixture.innerHTML === authoredMarkup, "Noise reduction altered publisher content or attributes");
+    const lowLabel = "কম অগ্রাধিকার";
+    const promoOption = [...list.options].find(option => option.textContent.includes("Promo first"));
+    check(promoOption.textContent.includes(lowLabel), "Sponsored sidebar did not receive low priority");
+    const labelsWithNoise = [...list.options].map(option => option.textContent);
+    for (const label of ["Critical security", "Critical error", "Critical payment", "Critical consent", "Critical legal", "Critical authentication", "Critical task", "Critical Bangla", "Referenced block", "Ordinary sidebar", "Address directory", "Plain footer"]) {
+      check(!labelsWithNoise.find(text => text.includes(label)).includes(lowLabel), "Protected/ordinary region was deprioritized: " + label);
+    }
+    check(labelsWithNoise.findIndex(text => text.includes("Ordinary sidebar")) < labelsWithNoise.findIndex(text => text.includes("Promo first")), "Low priority regions were not ordered later");
+    const promo = noiseFixture.querySelector("aside");
+    const warning = document.createElement("p"); warning.textContent = "Security warning"; promo.append(warning);
+    await until(() => ![...list.options].find(option => option.textContent.includes("Promo first")).textContent.includes(lowLabel));
+    check(list.value === selectedNoise.value, "Live protection update lost selection");
+    warning.remove();
+    await until(() => [...list.options].find(option => option.textContent.includes("Promo first")).textContent.includes(lowLabel));
+    // Authored text survives translation: neither English nor translated warnings may be missed.
+    const translatedWarning = document.createElement("p"); translatedWarning.textContent = "Translated notice";
+    translatedWarning.firstChild.__baaTranslated = true;
+    translatedWarning.firstChild.__baaAppliedText = "Translated notice";
+    translatedWarning.firstChild.__baaOriginalText = "Security warning";
+    promo.append(translatedWarning);
+    check(BAA_CONTENT_PROTECTION.inspect(promo).protected, "Original translated warning was missed");
+    translatedWarning.remove();
+    const ambiguous = document.createElement("p"); ambiguous.textContent = "x".repeat(16001); promo.append(ambiguous);
+    check(BAA_CONTENT_PROTECTION.inspect(promo).protected, "Analysis limit allowed deprioritization"); ambiguous.remove();
+    promo.setAttribute("aria-describedby", "missing-critical-reference");
+    check(BAA_CONTENT_PROTECTION.inspect(promo).protected, "Unresolved references allowed deprioritization"); promo.removeAttribute("aria-describedby");
+    const action = document.createElement("a"); action.href = "/checkout"; action.textContent = "Go"; promo.append(action);
+    check(BAA_CONTENT_PROTECTION.inspect(promo).protected, "Task-critical link path was missed"); action.remove();
+    const noticeImage = document.createElement("img"); noticeImage.alt = "Security warning"; promo.append(noticeImage);
+    check(BAA_CONTENT_PROTECTION.inspect(promo).protected, "Critical image alternative text was missed"); noticeImage.remove();
+    setNoise(false);
+    check([...list.options].map(option => option.value).join() === originalOrder.join(), "Disabling noise reduction did not restore document order");
+    setNoise(true);
+    choose("Promo first"); check(document.activeElement === promo, "Low-priority region was not reachable");
+    open();
+    check(![...list.options].find(option => option.textContent.includes("Promo first")).textContent.includes(lowLabel), "Focused region was deprioritized");
+    shadow.getElementById("close").click(); start.focus(); open();
+    setNoise(false); noiseFixture.remove();
     const late = document.createElement("h2"); late.textContent = "Live heading"; main.append(late);
     selectCategory("headings");
     await until(() => [...list.options].some(option => option.textContent.includes("Live heading")));
