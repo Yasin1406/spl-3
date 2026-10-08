@@ -1,0 +1,41 @@
+<!doctype html>
+<html lang="en">
+<meta charset="utf-8">
+<title>Navigator acceptance fixture</title>
+<style>body { font:18px/1.6 system-ui; max-width:800px; margin:30px auto; padding:20px; } :focus { outline:3px solid blue; } label { display:block; } section { margin:40px 0; }</style>
+<body>
+<header><nav aria-label="Site navigation"><a href="#registration">Registration</a> <a href="#updates">Updates</a></nav></header>
+<nav aria-label="Site navigation"><a href="#footer">Contact</a></nav>
+<main id="registration">
+  <h1>Registration</h1>
+  <form role="search" aria-label="Search this page"><label for="query">Search</label><input id="query" type="search"><button>Search</button></form>
+  <section><h2>Account details</h2>
+    <form aria-label="Create account">
+      <label for="email">Email address</label><input id="email" type="email" aria-invalid="true" aria-errormessage="email-error">
+      <p role="alert" id="email-error">Enter a complete email address.</p>
+      <label for="name">Name (required)</label><input id="name" required>
+      <button type="submit">Validate form</button>
+    </form>
+  </section>
+  <h2 tabindex="-1">Heading with authored negative tabindex</h2>
+  <div role="heading" aria-level="3">ARIA heading at level three</div>
+  <section id="updates" aria-label="Live updates"><h2>Updates</h2>
+    <button id="add" type="button">Add a heading</button><button id="remove" type="button">Remove added heading</button>
+  </section>
+  <h2 hidden>Hidden heading should never appear</h2>
+  <div inert><h2>Inert heading should never appear</h2></div>
+  <button id="modal" type="button">Open page modal</button>
+  <dialog id="page-modal"><p>Close this modal before opening the navigator.</p><form method="dialog"><button>Close modal</button></form></dialog>
+</main>
+<footer id="footer">Contact information</footer>
+<script>
+  document.querySelectorAll('form:not([method="dialog"])').forEach(form => form.addEventListener('submit', event => event.preventDefault()));
+  document.getElementById('add').addEventListener('click', () => {
+    if (document.getElementById('dynamic-heading')) return;
+    const heading = document.createElement('h2'); heading.id = 'dynamic-heading'; heading.textContent = 'Dynamically added heading'; document.getElementById('updates').append(heading);
+  });
+  document.getElementById('remove').addEventListener('click', () => document.getElementById('dynamic-heading')?.remove());
+  document.getElementById('modal').addEventListener('click', () => document.getElementById('page-modal').showModal());
+</script>
+</body>
+</html>

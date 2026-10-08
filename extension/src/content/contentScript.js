@@ -8,7 +8,8 @@
   const keyboardRepair = globalThis.BAA_KEYBOARD_REPAIR;
   const imageAssistantFactory = globalThis.BAA_IMAGE_ASSISTANT;
   const summaryAssistantFactory = globalThis.BAA_SUMMARY_ASSISTANT;
-  if (!translator || !scanner || !registryFactory || !liveRegionFactory || !formAssistantFactory || !keyboardRepair || !imageAssistantFactory || !summaryAssistantFactory || !reasons) return;
+  const navigationAssistantFactory = globalThis.BAA_NAVIGATION_ASSISTANT;
+  if (!translator || !scanner || !registryFactory || !liveRegionFactory || !formAssistantFactory || !keyboardRepair || !imageAssistantFactory || !summaryAssistantFactory || !navigationAssistantFactory || !reasons) return;
 
   const TRANSLATION_KEY = "baaTranslationEnabled";
   const ASSISTANT_KEY = "baaAssistantEnabled";
@@ -21,6 +22,7 @@
   let formAssistant = null;
   let imageAssistant = null;
   let summaryAssistant = null;
+  let navigationAssistant = null;
   let pendingRoots = new Set();
   let scanTimer = null;
   let aiTranslationQueue = [];
@@ -68,6 +70,8 @@
     summaryAssistant.start();
     if (formGuidanceEnabled) startFormGuidance();
     analyze(document);
+    navigationAssistant = navigationAssistantFactory.createNavigationAssistant({ documentRef: document, announcer: liveRegion });
+    navigationAssistant.start();
     accessibilityObserver = createAccessibilityObserver();
   }
 
@@ -82,6 +86,8 @@
     imageAssistant = null;
     summaryAssistant?.stop();
     summaryAssistant = null;
+    navigationAssistant?.stop();
+    navigationAssistant = null;
     registry.rollbackAll();
     liveRegion?.remove();
     liveRegion = null;
@@ -278,6 +284,10 @@
   });
 
   chrome.runtime.onMessage.addListener((message, _sender, sendResponse) => {
+    if (message?.type === "BAA_OPEN_NAVIGATOR") {
+      if (!navigationAssistant) sendResponse({ error: "ASSISTANT_DISABLED" });
+      else sendResponse(navigationAssistant.open() ? { opened: true } : { error: "PAGE_MODAL_ACTIVE" });
+    }
     if (message?.type === "BAA_INVOKE_SUMMARY") {
       if (!summaryAssistant) sendResponse({ error: "ASSISTANT_DISABLED" });
       else { summaryAssistant.invoke(message.scope === "region" ? "region" : "page"); sendResponse({ started: true }); }

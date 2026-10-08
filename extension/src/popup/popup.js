@@ -49,6 +49,18 @@
       setEnabled(!Boolean(result[STORAGE_KEY]));
     });
   });
+  document.getElementById("pageNavigator").addEventListener("click", () => {
+    chrome.tabs.query({ active: true, currentWindow: true }, tabs => {
+      if (tabs[0]?.id == null) return;
+      chrome.tabs.sendMessage(tabs[0].id, { type: "BAA_OPEN_NAVIGATOR" }, { frameId: 0 }, response => {
+        const message = document.getElementById("navigationStatus");
+        if (chrome.runtime.lastError) message.textContent = "এই পৃষ্ঠায় নেভিগেটর খোলা যায়নি। সাধারণ ওয়েবপৃষ্ঠায় চেষ্টা করুন বা পৃষ্ঠাটি রিফ্রেশ করুন।";
+        else if (response?.error === "PAGE_MODAL_ACTIVE") message.textContent = "পৃষ্ঠার বর্তমান ডায়ালগ বন্ধ করে আবার চেষ্টা করুন।";
+        else if (response?.error || !response?.opened) message.textContent = "সেটিংস থেকে সহায়ক চালু করে আবার চেষ্টা করুন।";
+        else window.close();
+      });
+    });
+  });
   for (const [id, scope] of [["pageSummary", "page"], ["regionSummary", "region"]]) {
     document.getElementById(id).addEventListener("click", () => {
       chrome.tabs.query({ active: true, currentWindow: true }, tabs => {

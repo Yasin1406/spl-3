@@ -13,7 +13,7 @@ test("Chrome article integration: heading/content focus, complete translation, l
   const directory = await mkdtemp(join(tmpdir(), "baa-article-test-"));
   try {
     const manifest = JSON.parse(await readFile(new URL("../public/manifest.json", import.meta.url), "utf8"));
-    const scripts = await Promise.all(manifest.content_scripts[0].js.map((file) => readFile(new URL(`../src/${file}`, import.meta.url), "utf8")));
+    const scripts = await Promise.all(manifest.content_scripts.flatMap(entry => entry.js).map((file) => readFile(new URL(`../src/${file}`, import.meta.url), "utf8")));
     const fixture = await readFile(new URL("../../tests/fixtures/article-accessibility.html", import.meta.url), "utf8");
     const setup = `
       const changedListeners = [];

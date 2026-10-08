@@ -123,6 +123,8 @@
     LIVE_REGION_SELECTOR,
     READING_BLOCK_SELECTOR,
     accessibleNameSource,
+    associatedLabelText,
+    textFromReferences,
     isElementVisible,
     isExtensionOwned,
     isReadingBlock,
