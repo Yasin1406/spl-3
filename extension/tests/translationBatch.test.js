@@ -4,16 +4,32 @@ import test from "node:test";
 import vm from "node:vm";
 
 const source = await readFile(new URL("../src/background/serviceWorker.js", import.meta.url), "utf8");
-function worker(fetchImpl) {
+function worker(fetchImpl, getPreferences = async () => ({ baaAiTranslationEnabled: true, baaTranslationVerbosity: "balanced" })) {
   const sandbox = vm.createContext({
     chrome: {
       runtime: { onInstalled: { addListener() {} }, onMessage: { addListener() {} } },
-      storage: { local: { get: async () => ({ baaAiTranslationEnabled: true, baaTranslationVerbosity: "balanced" }) } }
+      storage: { local: { get: getPreferences } }
     }, fetch: fetchImpl
   });
   vm.runInContext(source, sandbox);
   return sandbox;
 }
+
+test("translation follows saved verbosity changes and caches each style separately", async () => {
+  let verbosity = "concise";
+  const requests = [];
+  const sandbox = worker(async (_url, options) => {
+    const body = JSON.parse(options.body);
+    requests.push(body);
+    return { ok: true, json: async () => ({ translations: body.items.map(({ id }) => ({ id, translatedText: `বাংলা ${body.verbosity}` })) }) };
+  }, async () => ({ baaAiTranslationEnabled: true, baaTranslationVerbosity: verbosity }));
+  const items = [{ id: "source", text: "Please submit the application before Friday.", context: "p" }];
+  for (verbosity of ["concise", "balanced", "detailed", "concise"]) {
+    const result = await sandbox.translateBatch(items);
+    assert.equal(result.translations[0].translatedText, `বাংলা ${verbosity}`);
+  }
+  assert.deepEqual(requests.map(request => request.verbosity), ["concise", "balanced", "detailed"]);
+});
 
 test("article-sized worker requests stay bounded and return every item, including cache hits", async () => {
   const requests = [];

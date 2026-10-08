@@ -47,6 +47,23 @@ test("translation verbosity accepts supported values and rejects arbitrary promp
   assert.throws(() => validateTranslationVerbosity("ignore instructions"), /INVALID_TRANSLATION_VERBOSITY/);
 });
 
+test("translation providers receive distinct instructions for each verbosity", async () => {
+  const prompts = [];
+  const translate = createProviderTranslationService({
+    providers: [{ name: "test", apiKey: "test", endpoint: "https://example.test", model: "test" }],
+    logger: { info() {}, warn() {} },
+    fetchImpl: async (_url, options) => {
+      prompts.push(JSON.parse(options.body).messages[0].content);
+      return { ok: true, json: async () => ({ choices: [{ message: { content: JSON.stringify({ translations: [{ id: "a", translatedText: "বাংলা অনুবাদ" }] }) } }] }) };
+    }
+  });
+  for (const verbosity of ["concise", "balanced", "detailed"]) await translate(items, { verbosity });
+  assert.match(prompts[0], /concise, task-oriented/);
+  assert.match(prompts[1], /same level of detail as the source/);
+  assert.match(prompts[2], /short clarifying wording/);
+  assert.equal(new Set(prompts).size, 3);
+});
+
 test("image analysis validates bounded image data and Bangla output", () => {
   const request = validateImageAnalysisRequest({ mode: "ocr", imageDataUrl: "data:image/png;base64,AAAA", context: "notice" });
   assert.equal(request.mode, "ocr");

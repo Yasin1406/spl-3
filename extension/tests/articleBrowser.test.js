@@ -21,6 +21,7 @@ test("Chrome article integration: heading/content focus, complete translation, l
       const requests = [];
       const held = [];
       let hold = false;
+      let verbosity = 'balanced';
       let active = 0;
       let maxActive = 0;
       const article = document.querySelector('article');
@@ -46,11 +47,12 @@ test("Chrome article integration: heading/content focus, complete translation, l
           sendMessage(message, callback) {
             if (message.type === 'BAA_GET_PREFERENCES') { callback({ baaTranslationEnabled: true, baaFormGuidanceEnabled: false }); return; }
             requests.push(message);
+            const requestVerbosity = verbosity;
             active++;
             maxActive = Math.max(maxActive, active);
             const respond = () => {
               active--;
-              callback({ translations: message.items.map((item, index) => ({ id: item.id, translatedText: 'বাংলা অনুবাদ ' + index + '।' })), provider: 'mock' });
+              callback({ translations: message.items.map((item, index) => ({ id: item.id, translatedText: (requestVerbosity === 'detailed' ? 'বিস্তারিত বাংলা অনুবাদ ' : 'বাংলা অনুবাদ ') + index + '।' })), provider: 'mock' });
             };
             if (hold) held.push(respond);
             else setTimeout(respond, 25);
@@ -112,6 +114,25 @@ test("Chrome article integration: heading/content focus, complete translation, l
           originalLink.focus();
           check(document.activeElement === originalLink, 'Inline link is no longer independently focusable');
           check(document.querySelector('[hidden] p').textContent === originals.get(document.querySelector('[hidden] p')), 'Hidden text was translated');
+          const requestsBeforePreference = requests.length;
+          verbosity = 'detailed';
+          changedListeners.forEach(listener => listener({ baaTranslationVerbosity: { oldValue: 'balanced', newValue: 'detailed' } }, 'local'));
+          await until(() => [...originals.keys()].filter(p => !p.closest('[hidden]') && originals.get(p).trim()).every(p => p.textContent.includes('বিস্তারিত')));
+          check(requests.length > requestsBeforePreference, 'Verbosity change did not retranslate existing content');
+          hold = true;
+          const pendingPreference = document.createElement('p');
+          pendingPreference.textContent = 'A pending translation during a preference change';
+          article.append(pendingPreference);
+          await until(() => held.length > 0);
+          verbosity = 'balanced';
+          changedListeners.forEach(listener => listener({ baaTranslationVerbosity: { oldValue: 'detailed', newValue: 'balanced' } }, 'local'));
+          hold = false;
+          held.splice(0).forEach(respond => respond());
+          await sleep(50);
+          check(!pendingPreference.textContent.includes('বিস্তারিত'), 'Old response overwrote the changed preference');
+          await until(() => [...originals.keys()].filter(p => !p.closest('[hidden]')).every(p => !/[A-Za-z]/.test(p.textContent)) && !/[A-Za-z]/.test(pendingPreference.textContent));
+          check(!pendingPreference.textContent.includes('বিস্তারিত'), 'New translation retained the old style');
+          pendingPreference.remove();
           const dynamic = document.createElement('h2');
           dynamic.textContent = 'A newly inserted article heading';
           article.append(dynamic);

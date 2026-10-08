@@ -283,6 +283,10 @@
     }
     if (changes.baaSummaryDetail) { summaryDetail = changes.baaSummaryDetail.newValue; summaryAssistant?.setDetail(summaryDetail); }
     if (changes[TRANSLATION_KEY]) changes[TRANSLATION_KEY].newValue ? startTranslation() : stopTranslation();
+    else if (changes.baaTranslationVerbosity && translationObserver) {
+      stopTranslation();
+      startTranslation();
+    }
     if (changes[ASSISTANT_KEY]) changes[ASSISTANT_KEY].newValue ? startAssistant(undefined) : stopAssistant();
     if (changes[FORM_GUIDANCE_KEY] && accessibilityObserver) changes[FORM_GUIDANCE_KEY].newValue ? startFormGuidance() : stopFormGuidance();
     if (changes[IMAGE_GUIDANCE_KEY]) {
