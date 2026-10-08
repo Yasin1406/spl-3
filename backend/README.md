@@ -90,6 +90,16 @@ Translation provider groq failed: HTTP_429 model=qwen/qwen3.8-27b
 Translation provider mistral succeeded: model=mistral-small-2603 items=1 durationMs=418 failedBefore=groq
 ```
 
+## Page-summary API
+
+`POST /api/v1/assist/page-summary` accepts sanitized structured context with `scope` (`page`/`region`), `detail` (`brief`/`standard`/`detailed`), purpose, bounded title, regions containing identified source blocks/controls/notices, and coverage metadata. DOM references, HTML, field values, URLs and unapproved properties are excluded from the validated model input. Recognized private requests require `allowPrivateContent: true`; the extension keeps them local by default.
+
+Responses contain one coherent `summary_bn`, per-region source coverage in `sections` with `region_id`/`source_ids`, provider metadata, `prompt_version`, and coverage. Selected nested regions are summarized together, chunked by content size rather than individually per heading/table; long inputs combine partials into one gist. The versioned prompt is `ai/prompts/page-summary-v1.txt`. Groq/Mistral/Cerebras ordering and existing model settings are reused. Every considered block must be referenced, output must contain Bangla and no HTML/code, and numerical claims are checked against supplied context, allowing Bengali digits and common date/thousands formatting. These checks reduce errors but do not prove factual correctness or semantic coverage.
+
+Large regions are processed in source chunks of at most 10,000 characters, then their partial summaries are combined. Per-provider timeout is 15 seconds; overall generation is bounded to 150 seconds. Client disconnects/cancellation stop further provider attempts. Failure leaves the extension's local overview available. Logs contain provider/model/block-count/prompt metadata only. Summaries are not persisted.
+
+Restart the running backend after updating to register the new endpoint. On 2026-10-08, one synthetic public library notice passed live generation and response validation through the configured Groq model; no private page content was sent.
+
 ## Automated verification
 
 ```powershell
