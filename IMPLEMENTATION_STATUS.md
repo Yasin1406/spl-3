@@ -2,6 +2,38 @@
 
 Status values: `NOT_STARTED`, `PARTIAL`, `IMPLEMENTED`, `BLOCKED`, `DEFERRED`.
 
+## 2026-10-08 — Bangla page and focused-region summaries
+
+### Completed
+
+- Implemented on-request summaries with Alt+Shift+A (page) and Alt+Shift+S (meaningful region containing the focused element), plus popup/page buttons and an accessible native dialog. Length and AI preferences live in extension settings. Completion focuses the summary text; failure or changed source content focuses the retry button. Closing restores previous page focus.
+- Added region-based sanitized extraction of ordered text, useful alt, table header/value relationships, controls/constraints/state, and important notices. Main/secondary evidence stays local; ambiguous pages expose a region choice rather than merging unrelated content. Plain text, dynamic content and focused-region budgeting are supported.
+- The dialog leads with the content gist and at most five useful links/actions, with a short page introduction as fallback. Main-landmark descendants are one task. Extraction is site-independent: semantic/document roles, heading labels, prose concentration and link density identify main/secondary content, infer narrow unmarked article containers, and protect declared/numeric data tables. No hostname or site CSS class is used. Nested regions share content-sized provider requests instead of separate heading summaries. Known private contexts default to structure only; private-content permission is explicit for one request and never saved. Field values are never read. Raw HTML/scripts, hidden/editable/owned content and unapproved request properties are excluded; recognizable sensitive strings are redacted.
+- Added versioned summary prompt, dedicated API/service/validator, ordered Groq/Mistral/Cerebras fallback, bounded long-content chunk/combine generation, coverage metadata, complete source-reference checks, Bangla/schema checks, and checks against unsupported numerical claims. Summaries/page content are not stored or logged.
+- Added cancellation scoped to the requesting tab, provider/client timeouts, stale-result guards and invalidation on summarized-content changes, closing, navigation, replacement requests and assistant disablement. Unrelated widget changes and extension translations do not invalidate a gist; original authored text is used when available.
+
+### Changed files
+
+- Extension: new `pageContextCollector.js`, `pageSummaryPlanner.js`, `summaryAssistant.js`; content entry, worker, manifest/build, popup and settings updated.
+- Backend: new summary route/service/validator; app/server/check commands updated. Added `ai/prompts/page-summary-v1.txt`.
+- New backend summary tests, Chrome summary integration and worker cancellation/coverage tests. Updated backend/extension/fixture documentation and phased plan.
+
+### Verification
+
+- Extension `npm.cmd run check`: PASS, 18 JavaScript files; `npm.cmd test`: PASS, 25 tests. Headless Chrome uses real DOM, MutationObserver and native dialog behavior with mocked provider messages.
+- Browser coverage: articles/related cards, search results, form requirements/errors (throwing value getters prove no field/password reads), product price, table header/value relations, private/default vs permitted requests, ambiguous regions, plain text/status, long content/limits, focused-region budgets, both shortcuts, detail, focus restoration, fallback, navigation and cancellation.
+- Backend `npm.cmd run check`: PASS, 12 source files; `npm.cmd test`: PASS, 27 tests. Covers redaction/allowlisting, privacy gates, source/numerical checks, ordered fallback with safe logs, chunk/combine coverage, aggregation of nested regions, abort behavior and API responses.
+- Live synthetic public library notice: PASS through Groq `qwen/qwen3.8-27b`, prompt `page-summary-v1`, one section/source reference, 159 output characters. Initial sandbox network attempt failed; approved network retry succeeded. No private content or secrets printed.
+- Generic collector verification: downloaded public Wikipedia Screen reader, GOV.UK passport guidance and Books to Scrape product HTML retain main-content generation with all site CSS classes removed. Browser regression tests cover unmarked prose, heading-based references/editorial notes, standard citations, link-heavy layout tables, and preservation of link-rich data tables. The content-generation pipeline was also verified with a live Groq article gist. Downloaded-layout checks do not establish manual NVDA acceptance on live sites.
+- Production build and `git diff --check`: PASS.
+
+### Current status and limitations
+
+- FR-14 `PARTIAL` under full acceptance criteria: working implementation, automated browser/API tests and one live synthetic verification exist; manual NVDA/OS shortcut and representative real-site evaluation remain.
+- Purpose/privacy classification is heuristic and cannot identify every sensitive region. Extraction is limited to loaded top-document content and configured bounds; embeds/unavailable chart data and truncation are disclosed. Very complex nested layouts may require a smaller region. Source/numerical checks do not prove overall factual correctness.
+- No general region navigator/skip links, profile persistence, or feedback service was added. Other previously documented gaps remain.
+- Restart the backend, reload `extension/dist`, refresh target tabs, and perform the documented manual summary acceptance checks.
+
 ## 2026-10-07 — Report body keyboard focus
 
 ### Completed

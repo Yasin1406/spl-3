@@ -49,4 +49,17 @@
       setEnabled(!Boolean(result[STORAGE_KEY]));
     });
   });
+  for (const [id, scope] of [["pageSummary", "page"], ["regionSummary", "region"]]) {
+    document.getElementById(id).addEventListener("click", () => {
+      chrome.tabs.query({ active: true, currentWindow: true }, tabs => {
+        const tabId = tabs?.[0]?.id;
+        if (!tabId) return;
+        chrome.tabs.sendMessage(tabId, { type: "BAA_INVOKE_SUMMARY", scope }, response => {
+          if (chrome.runtime.lastError || response?.error) {
+            document.getElementById("summaryStatus").textContent = "সহায়ক চালু করুন এবং পৃষ্ঠাটি রিফ্রেশ করে আবার চেষ্টা করুন।";
+          } else window.close();
+        });
+      });
+    });
+  }
 })();

@@ -2,6 +2,14 @@
 
 This plan maps `CODEX_IMPLEMENTATION_README_UPDATED.md` onto the audited repository. The goal is a narrow, testable end-to-end prototype. Existing working translation code will be preserved until its replacement is verified.
 
+## 2026-10-08 page and focused-region summary implementation
+
+- Added a site-independent region collector/planner across articles, search/list pages, forms, products, tables/dashboard layouts and unfamiliar pages. The dialog leads with a Bangla gist and at most five useful links/actions. Main descendants share the same task. Semantic/document roles, headings, prose concentration and link density infer unmarked articles and supporting content while preserving data tables; no hostname or site CSS selectors are used. Independent ambiguous regions offer selection; fallback is a brief page introduction.
+- Added Alt+Shift+A (page) and Alt+Shift+S (focused region), equivalent popup/page buttons, a native summary dialog with focus restoration, explicit per-request private-content permission, and length/AI preferences in extension settings. Closing, navigation, summarized-content changes, superseding requests and disablement cancel/invalidate pending work. Original source extraction avoids invalidation by extension translations or unrelated widgets.
+- Added `/api/v1/assist/page-summary`, a versioned prompt, bounded/redacted schema, source/numerical checks, ordered provider fallback, long-region section/combine generation, metadata-only logging and safe local-overview fallback.
+- Extension checks and all 25 tests pass, including two headless Chrome integration tests. Backend checks and all 27 tests pass. Live synthetic/article summaries through Groq passed validation. The generic collector was checked on three downloaded public layouts with their site classes removed. Nested regions aggregate into size-based requests and one coherent gist. Production extension rebuilt.
+- FR-14 has working end-to-end code; Chrome/NVDA and representative real-site acceptance remain. Purpose/privacy heuristics and complex application/embedded-content coverage remain limited. The broader region navigator, skip links and other incomplete phases below remain pending.
+
 ## 2026-10-07 report body focus follow-up
 
 - Extended reversible Tab focus to meaningful reading blocks inside article/main regions, including paragraphs with inline links, quotations, list items, captions, and plain text divs. Preserves native semantics/non-negative tabindex, restores negative values on disablement, and excludes duplicate layout wrappers and hidden/editable/interactive content.

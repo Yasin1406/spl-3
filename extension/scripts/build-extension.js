@@ -24,6 +24,9 @@ const filesToCopy = [
   ["src/content/keyboardRepair.js", "content/keyboardRepair.js"],
   ["src/content/imageAssistant.js", "content/imageAssistant.js"],
   ["src/content/formAssistant.js", "content/formAssistant.js"],
+  ["src/content/pageContextCollector.js", "content/pageContextCollector.js"],
+  ["src/content/pageSummaryPlanner.js", "content/pageSummaryPlanner.js"],
+  ["src/content/summaryAssistant.js", "content/summaryAssistant.js"],
   ["src/content/contentScript.js", "content/contentScript.js"]
 ];
 

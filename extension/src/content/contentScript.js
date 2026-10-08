@@ -7,7 +7,8 @@
   const reasons = globalThis.BAA_REASON_CODES;
   const keyboardRepair = globalThis.BAA_KEYBOARD_REPAIR;
   const imageAssistantFactory = globalThis.BAA_IMAGE_ASSISTANT;
-  if (!translator || !scanner || !registryFactory || !liveRegionFactory || !formAssistantFactory || !keyboardRepair || !imageAssistantFactory || !reasons) return;
+  const summaryAssistantFactory = globalThis.BAA_SUMMARY_ASSISTANT;
+  if (!translator || !scanner || !registryFactory || !liveRegionFactory || !formAssistantFactory || !keyboardRepair || !imageAssistantFactory || !summaryAssistantFactory || !reasons) return;
 
   const TRANSLATION_KEY = "baaTranslationEnabled";
   const ASSISTANT_KEY = "baaAssistantEnabled";
@@ -19,6 +20,7 @@
   let liveRegion = null;
   let formAssistant = null;
   let imageAssistant = null;
+  let summaryAssistant = null;
   let pendingRoots = new Set();
   let scanTimer = null;
   let aiTranslationQueue = [];
@@ -26,6 +28,7 @@
   let aiTranslationInFlight = false;
   let translationGeneration = 0;
   let imageShortcutGuidanceEnabled = true;
+  let summaryDetail = "standard";
 
   function startTranslation() {
     if (translationObserver) return;
@@ -47,8 +50,9 @@
 
   function startAssistant(formGuidanceEnabled = true) {
     if (typeof formGuidanceEnabled !== "boolean") {
-      chrome.storage.local.get({ [FORM_GUIDANCE_KEY]: true, [IMAGE_GUIDANCE_KEY]: true }, (state) => {
+      chrome.storage.local.get({ [FORM_GUIDANCE_KEY]: true, [IMAGE_GUIDANCE_KEY]: true, baaSummaryDetail: "standard" }, (state) => {
         imageShortcutGuidanceEnabled = Boolean(state[IMAGE_GUIDANCE_KEY]);
+        summaryDetail = state.baaSummaryDetail;
         startAssistant(Boolean(state[FORM_GUIDANCE_KEY]));
       });
       return;
@@ -60,6 +64,8 @@
       registry, reasons, guidanceEnabled: imageShortcutGuidanceEnabled
     });
     imageAssistant.start();
+    summaryAssistant = summaryAssistantFactory.createSummaryAssistant({ documentRef: document, announcer: liveRegion, sendMessage: sendRuntimeMessage, detail: summaryDetail });
+    summaryAssistant.start();
     if (formGuidanceEnabled) startFormGuidance();
     analyze(document);
     accessibilityObserver = createAccessibilityObserver();
@@ -74,6 +80,8 @@
     stopFormGuidance();
     imageAssistant?.stop();
     imageAssistant = null;
+    summaryAssistant?.stop();
+    summaryAssistant = null;
     registry.rollbackAll();
     liveRegion?.remove();
     liveRegion = null;
@@ -250,14 +258,16 @@
     return issues.reduce((counts, entry) => ({ ...counts, [entry.reasonCode]: (counts[entry.reasonCode] || 0) + 1 }), {});
   }
 
-  chrome.storage.local.get({ [TRANSLATION_KEY]: false, [ASSISTANT_KEY]: true, [FORM_GUIDANCE_KEY]: true, [IMAGE_GUIDANCE_KEY]: true }, (state) => {
+  chrome.storage.local.get({ [TRANSLATION_KEY]: false, [ASSISTANT_KEY]: true, [FORM_GUIDANCE_KEY]: true, [IMAGE_GUIDANCE_KEY]: true, baaSummaryDetail: "standard" }, (state) => {
     imageShortcutGuidanceEnabled = Boolean(state[IMAGE_GUIDANCE_KEY]);
+    summaryDetail = state.baaSummaryDetail;
     if (state[TRANSLATION_KEY]) startTranslation();
     if (state[ASSISTANT_KEY]) startAssistant(Boolean(state[FORM_GUIDANCE_KEY]));
   });
 
   chrome.storage.onChanged.addListener((changes, areaName) => {
     if (areaName !== "local") return;
+    if (changes.baaSummaryDetail) { summaryDetail = changes.baaSummaryDetail.newValue; summaryAssistant?.setDetail(summaryDetail); }
     if (changes[TRANSLATION_KEY]) changes[TRANSLATION_KEY].newValue ? startTranslation() : stopTranslation();
     if (changes[ASSISTANT_KEY]) changes[ASSISTANT_KEY].newValue ? startAssistant(undefined) : stopAssistant();
     if (changes[FORM_GUIDANCE_KEY] && accessibilityObserver) changes[FORM_GUIDANCE_KEY].newValue ? startFormGuidance() : stopFormGuidance();
@@ -268,6 +278,10 @@
   });
 
   chrome.runtime.onMessage.addListener((message, _sender, sendResponse) => {
+    if (message?.type === "BAA_INVOKE_SUMMARY") {
+      if (!summaryAssistant) sendResponse({ error: "ASSISTANT_DISABLED" });
+      else { summaryAssistant.invoke(message.scope === "region" ? "region" : "page"); sendResponse({ started: true }); }
+    }
     if (message?.type === "BAA_SET_TRANSLATION_STATE") message.enabled ? startTranslation() : stopTranslation();
     if (message?.type === "BAA_GET_SCAN_SUMMARY") sendResponse(globalThis.BAA_LAST_SCAN || null);
   });

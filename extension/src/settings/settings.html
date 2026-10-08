@@ -48,7 +48,16 @@
           <p>কোনো ছবিতে ফোকাস বা মাউস রেখে <kbd>Alt+Shift+D</kbd> চাপলে ছবির বর্ণনা এবং <kbd>Alt+Shift+O</kbd> চাপলে ছবির লেখা (OCR) বাংলায় শোনা যাবে।</p>
         </fieldset>
 
+        <fieldset>
+          <legend>সারাংশ</legend>
+          <label class="check-row"><input id="aiSummaryEnabled" type="checkbox"> অনুরোধ করলে পরিচ্ছন্ন লেখা থেকে AI সারাংশ তৈরি করুন</label>
+          <label for="summaryDetail">সারাংশের আকার</label>
+          <select id="summaryDetail"><option value="brief">সংক্ষিপ্ত</option><option value="standard">স্বাভাবিক</option><option value="detailed">বিস্তারিত</option></select>
+          <p>এই আকার পৃষ্ঠার ও ফোকাসের অংশের সব সারাংশে ব্যবহার করা হবে। সারাংশে মূল বক্তব্য এবং সর্বোচ্চ পাঁচটি দরকারি লিংক বা কাজ দেখানো হয়। AI বন্ধ থাকলে পৃষ্ঠার পরিচয় ও দরকারি লিংক পাওয়া যাবে।</p>
+          <p>AI সারাংশের জন্য নির্বাচিত অংশের পরিচ্ছন্ন লেখা বাহ্যিক সেবায় পাঠানো হয়। পৃষ্ঠার HTML বা ঘরে লেখা মান পাঠানো হয় না। ব্যক্তিগত পৃষ্ঠার লেখা পাঠাতে প্রতিবার আলাদা অনুমতি দিতে হবে।</p>
+        </fieldset>
         <button type="submit">সেটিংস সংরক্ষণ করুন</button>
+        <p>পৃষ্ঠার সারাংশ: <kbd>Alt+Shift+A</kbd>। ফোকাস থাকা অংশের সারাংশ: <kbd>Alt+Shift+S</kbd>। সারাংশের আকার বদলাতে এই সেটিংস ব্যবহার করুন।</p>
         <p id="saveStatus" role="status" aria-live="polite"></p>
       </form>
     </main>

@@ -5,9 +5,12 @@ const DEFAULTS = Object.freeze({
   baaTranslationVerbosity: "balanced",
   baaImageShortcutGuidanceEnabled: true,
   baaAiTranslationEnabled: true,
+  baaAiSummaryEnabled: true,
+  baaSummaryDetail: "standard",
   baaBackendUrl: "http://127.0.0.1:3000"
 });
 const translationCache = new Map();
+const summaryRequests = new Map();
 
 chrome.runtime.onInstalled.addListener(() => {
   chrome.storage.local.get(null, (current) => {
@@ -16,7 +19,15 @@ chrome.runtime.onInstalled.addListener(() => {
   });
 });
 
-chrome.runtime.onMessage.addListener((message, _sender, sendResponse) => {
+chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
+  if (message?.type === "BAA_SUMMARIZE_PAGE") {
+    summarizePage(message, sender).then(sendResponse).catch(error => sendResponse({ error: error.message || "SUMMARY_FAILED" }));
+    return true;
+  }
+  if (message?.type === "BAA_CANCEL_SUMMARY") {
+    summaryRequests.get(`${sender.tab?.id ?? "extension"}:${message.requestId}`)?.abort();
+    sendResponse({ cancelled: true }); return;
+  }
   if (message?.type === "BAA_GET_PREFERENCES") {
     chrome.storage.local.get(DEFAULTS, sendResponse);
     return true;
@@ -34,6 +45,34 @@ chrome.runtime.onMessage.addListener((message, _sender, sendResponse) => {
     return true;
   }
 });
+
+async function summarizePage(message, sender = {}) {
+  if (!/^summary-[\d-]+$/.test(message.requestId || "") || !message.context?.regions?.length) throw new Error("INVALID_SUMMARY_REQUEST");
+  const key = `${sender.tab?.id ?? "extension"}:${message.requestId}`;
+  if (summaryRequests.has(key)) throw new Error("SUMMARY_ALREADY_RUNNING");
+  const controller = new AbortController();
+  summaryRequests.set(key, controller);
+  const timer = setTimeout(() => controller.abort(), 160000);
+  try {
+    const preferences = await chrome.storage.local.get(DEFAULTS);
+    if (preferences.baaAiSummaryEnabled === false) throw new Error("SUMMARY_AI_DISABLED");
+    const backendUrl = String(preferences.baaBackendUrl || DEFAULTS.baaBackendUrl).replace(/\/$/, "");
+    const response = await fetch(`${backendUrl}/api/v1/assist/page-summary`, {
+      method: "POST", headers: { "Content-Type": "application/json" }, signal: controller.signal,
+      body: JSON.stringify(message.context)
+    });
+    if (!response.ok) throw new Error("SUMMARY_SERVICE_UNAVAILABLE");
+    const payload = await response.json();
+    const regionIds = new Set(message.context.regions.map(region => region.id));
+    const sourceIds = new Set(message.context.regions.flatMap(region => region.blocks.map(block => block.id)));
+    const returnedIds = Array.isArray(payload.sections) ? payload.sections.flatMap(section => section.source_ids || []) : [];
+    if (typeof payload.summary_bn !== "string" || payload.summary_bn.length > 32000 || !/[\u0980-\u09FF]/.test(payload.summary_bn) ||
+        !Array.isArray(payload.sections) || !payload.sections.length || payload.sections.some(section => !regionIds.has(section.region_id) ||
+          !Array.isArray(section.source_ids) || section.source_ids.some(id => !sourceIds.has(id))) ||
+        new Set(returnedIds).size !== sourceIds.size || returnedIds.length !== sourceIds.size) throw new Error("INVALID_SUMMARY_RESPONSE");
+    return payload;
+  } finally { clearTimeout(timer); summaryRequests.delete(key); }
+}
 
 async function analyzeImage(message) {
   if (!["ocr", "describe"].includes(message.mode)) throw new Error("INVALID_IMAGE_MODE");

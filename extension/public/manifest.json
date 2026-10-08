@@ -27,6 +27,9 @@
         "content/keyboardRepair.js",
         "content/imageAssistant.js",
         "content/formAssistant.js",
+        "content/pageContextCollector.js",
+        "content/pageSummaryPlanner.js",
+        "content/summaryAssistant.js",
         "content/contentScript.js"
       ],
       "run_at": "document_idle"

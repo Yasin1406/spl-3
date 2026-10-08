@@ -23,3 +23,16 @@ Manual Phase 1 check:
 7. Enter an invalid email, move focus away, and confirm the email-specific guidance is announced without exposing the entered value.
 8. Enter a short password and confirm the minimum length is announced using Bangla digits.
 9. Disable form guidance in settings and confirm generated descriptions are removed while native browser validation still works.
+
+Manual summary acceptance (Chrome + NVDA):
+
+1. Restart the backend and reload the extension, then refresh an article, results page, product page, public application form, and table/dashboard page.
+2. With the assistant enabled, press Alt+Shift+A. Confirm the dialog is named in Bangla, a short page introduction appears immediately, and the generated content gist leads the results. Verify at most five useful links/actions and no region/control inventory. Test both semantic articles and unmarked prose containers: main text should survive changes to arbitrary CSS class names, while named reference/editorial sections and link-heavy layout tables stay secondary. Link-rich data tables with headers must retain their data.
+3. Confirm an article's related stories are separate, search-result links remain relevant results, form fields expose labels/requirements/errors without entered values, and table values retain their headers.
+4. Focus a paragraph, link or form field, then press Alt+Shift+S. Confirm the enclosing meaningful region is selected. With no suitable focused region, verify the announcement and absence of a provider request.
+5. Set brief/standard/detailed output in extension settings, then invoke a fresh summary and verify the setting is used. Confirm no length preference appears in the dialog. Where independent regions are ambiguous, choose one. Verify the on-page and popup buttons provide equivalent commands. Press Tab/Shift+Tab within the native modal; close it with the button or Escape and confirm original focus returns.
+6. On a private-page fixture, verify the structural-only default and no automatic request. For an explicit permitted content request, verify that the permission resets and field values are still excluded.
+7. Disable AI summaries or disconnect the backend and verify the short page introduction remains. Close the panel, disable the assistant, navigate, or change summarized content during a pending request and verify no late summary reopens or updates the panel. Changing unrelated navigation widgets or applying extension translations must not cancel a pending gist.
+8. Confirm default shortcuts work alongside the user's actual Chrome/NVDA and keyboard-layout configuration. Automated key-event tests do not establish OS/screen-reader shortcut compatibility.
+
+`extension/tests/summaryBrowser.test.js` covers synthetic examples of these layouts with real Chrome DOM/dialog behavior and mocked provider messages. Backend summary tests cover schema/redaction, ordered fallback, long-content coverage, source/numerical checks, cancellation and the route.
