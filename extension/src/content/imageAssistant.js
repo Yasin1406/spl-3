@@ -31,6 +31,38 @@
     let hoveredImage = null;
     let shouldAnnounceGuidance = Boolean(guidanceEnabled);
     const descriptionNodes = new Set();
+    let active = false, descriptionTimer = null;
+
+    function isImageFocused(image) {
+      let element = documentRef.activeElement;
+      while (element?.shadowRoot?.activeElement) element = element.shadowRoot.activeElement;
+      return element && element !== documentRef.body && element !== documentRef.documentElement &&
+        (element === image || element.contains?.(image));
+    }
+
+    function flushDescriptions() {
+      if (!active) return;
+      for (const node of descriptionNodes) {
+        const image = node.__baaImageElement;
+        if (node.__baaPendingText === undefined || isImageFocused(image)) continue;
+        node.textContent = node.__baaPendingText;
+        delete node.__baaPendingText;
+        if (!node.__baaAssociated) {
+          const existing = image.getAttribute("aria-describedby");
+          registry.applyAttribute({
+            element: image, attribute: "aria-describedby",
+            value: [existing, node.id].filter(Boolean).join(" "),
+            reasonCode: reasons.IMAGE_DESCRIPTION_CACHED, ruleScore: 1
+          });
+          node.__baaAssociated = true;
+        }
+      }
+    }
+
+    function onFocusOut() {
+      // Wait until browser focus has moved before changing the image description.
+      if (descriptionTimer === null) descriptionTimer = globalScope.setTimeout(() => { descriptionTimer = null; flushDescriptions(); }, 0);
+    }
 
     function onPointerOver(event) {
       hoveredImage = event.target?.closest?.("img") || null;
@@ -62,10 +94,12 @@
           type: "BAA_ANALYZE_IMAGE", mode, imageUrl: image.currentSrc || image.src,
           context: [image.alt, image.title, image.closest("figure")?.querySelector("figcaption")?.textContent].filter(Boolean).join(" ").slice(0, 300)
         });
+        if (!active) return;
         attachPersistentResult(image, response.text);
         announcer.announce(response.text);
         globalScope.BAA_LAST_IMAGE_ANALYSIS = response;
       } catch (error) {
+        if (!active) return;
         const code = error.message || "IMAGE_ANALYSIS_FAILED";
         globalScope.BAA_LAST_IMAGE_ANALYSIS = { error: code, mode };
         globalScope.console?.warn?.(`Image analysis failed: ${code}`);
@@ -85,34 +119,36 @@
         description = documentRef.createElement("span");
         description.id = `baa-image-description-${Math.random().toString(36).slice(2, 10)}`;
         description.dataset.baaOwned = "true";
-        Object.assign(description.style, {
-          position: "absolute", width: "1px", height: "1px", padding: "0", margin: "-1px",
-          overflow: "hidden", clip: "rect(0, 0, 0, 0)", whiteSpace: "nowrap", border: "0"
-        });
+        // Hidden referenced text supplies an accessible description on revisiting
+        // the image without becoming another paragraph in the browse buffer.
+        description.hidden = true;
         documentRef.body.append(description);
         image.__baaImageDescriptionNode = description;
         description.__baaImageElement = image;
         descriptionNodes.add(description);
-        const existing = image.getAttribute("aria-describedby");
-        registry.applyAttribute({
-          element: image, attribute: "aria-describedby",
-          value: [existing, description.id].filter(Boolean).join(" "),
-          reasonCode: reasons.IMAGE_DESCRIPTION_CACHED, ruleScore: 1
-        });
       }
-      description.textContent = text;
+      // The live region is the sole result announcement while this image has
+      // focus. Updating its accessible description then can make NVDA repeat it.
+      description.__baaPendingText = text;
+      flushDescriptions();
     }
 
     return Object.freeze({
       start() {
+        active = true;
         documentRef.addEventListener("pointerover", onPointerOver, true);
         documentRef.addEventListener("focusin", onFocusIn, true);
+        documentRef.addEventListener("focusout", onFocusOut, true);
         documentRef.addEventListener("keydown", onKeyDown, true);
       },
       setGuidanceEnabled(enabled) { shouldAnnounceGuidance = Boolean(enabled); },
       stop() {
+        active = false;
+        if (descriptionTimer !== null) globalScope.clearTimeout(descriptionTimer);
+        descriptionTimer = null;
         documentRef.removeEventListener("pointerover", onPointerOver, true);
         documentRef.removeEventListener("focusin", onFocusIn, true);
+        documentRef.removeEventListener("focusout", onFocusOut, true);
         documentRef.removeEventListener("keydown", onKeyDown, true);
         for (const node of descriptionNodes) {
           if (node.__baaImageElement) delete node.__baaImageElement.__baaImageDescriptionNode;
