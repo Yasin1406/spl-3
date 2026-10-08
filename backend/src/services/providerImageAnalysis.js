@@ -1,6 +1,12 @@
 import { validateImageAnalysisResult } from "../validators/imageAnalysis.js";
 import { providerRequestOptions } from "./providerPolicy.js";
 
+const OCR_DETAIL = Object.freeze({
+  brief: { instruction: "Return a brief summary of the readable text in 1-3 sentences, covering only the main message and essential names, numbers, dates, or actions.", maxTokens: 800 },
+  standard: { instruction: "Return a balanced summary of the readable text in 4-6 sentences when enough text is present. Include the main message and supporting facts, names, numbers, dates, URLs, and required actions.", maxTokens: 1600 },
+  detailed: { instruction: "Return a detailed rendering of all readable text in reading order. Preserve every meaningful fact, name, number, date, URL, and instruction; do not condense it into a short summary.", maxTokens: 3200 }
+});
+
 export function visionProvidersFromEnvironment(environment, translationProviders) {
   return translationProviders.flatMap((provider) => {
     const model = String(environment[`${provider.name.toUpperCase()}_VISION_MODEL`] || "").trim();
@@ -30,8 +36,9 @@ export function createProviderImageAnalysisService({ providers, fetchImpl = fetc
 async function requestProvider(provider, input, fetchImpl, timeoutMs) {
   const controller = new AbortController();
   const timeout = setTimeout(() => controller.abort(), timeoutMs);
+  const detail = OCR_DETAIL[input.detail] || OCR_DETAIL.standard;
   const instruction = input.mode === "ocr"
-    ? "Extract all readable text and return it in natural Bangla. Preserve names, numbers, dates, URLs, and reading order. If no text is readable, say so briefly in Bangla."
+    ? `Read the image text and return it in natural Bangla. ${detail.instruction} Use fewer sentences if the source is short; never invent details or repeat text to meet a length target. If no text is readable, say so briefly in Bangla.`
     : "Describe the image concisely in Bangla for a blind web user. State meaningful content, action, direction, and visible text; do not speculate.";
   try {
     const response = await fetchImpl(provider.endpoint, {
@@ -40,7 +47,7 @@ async function requestProvider(provider, input, fetchImpl, timeoutMs) {
       body: JSON.stringify({ model: provider.model, messages: [{ role: "user", content: [
         { type: "text", text: `${instruction}\nNearby context: ${input.context || "none"}\nReturn JSON only: {\"text\":\"Bangla result\"}` },
         { type: "image_url", image_url: { url: input.imageDataUrl } }
-      ] }], response_format: { type: "json_object" }, temperature: 0.1, max_tokens: 800,
+      ] }], response_format: { type: "json_object" }, temperature: 0.1, max_tokens: input.mode === "ocr" ? detail.maxTokens : 800,
         ...providerRequestOptions(provider) })
     });
     if (!response.ok) { const error = new Error(`HTTP_${response.status}`); error.code = error.message; throw error; }

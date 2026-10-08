@@ -234,7 +234,8 @@ async function analyzeImage(message) {
   const backendUrl = String(preferences.baaBackendUrl || DEFAULTS.baaBackendUrl).replace(/\/$/, "");
   const response = await fetch(`${backendUrl}/api/v1/assist/image-analysis`, {
     method: "POST", headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ mode: message.mode, imageDataUrl, context: String(message.context || "").slice(0, 300) })
+    body: JSON.stringify({ mode: message.mode, imageDataUrl, context: String(message.context || "").slice(0, 300),
+      detail: ["brief", "standard", "detailed"].includes(preferences.baaSummaryDetail) ? preferences.baaSummaryDetail : DEFAULTS.baaSummaryDetail })
   });
   if (!response.ok) {
     const failure = await response.json().catch(() => ({}));

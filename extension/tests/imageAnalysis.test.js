@@ -16,6 +16,28 @@ function worker(overrides = {}) {
   return sandbox;
 }
 
+test("OCR reads the current summary preference for every request without reloading", async () => {
+  let preference = "brief";
+  const requests = [];
+  const sandbox = worker({
+    chrome: {
+      runtime: { onInstalled: { addListener() {} }, onMessage: { addListener() {} } },
+      storage: { local: { get: async () => ({ baaSummaryDetail: preference }) } }
+    },
+    btoa: value => Buffer.from(value, "binary").toString("base64"),
+    createImageBitmap: async () => ({ width: 100, height: 100, close() {} }),
+    fetch: async (_url, options) => {
+      if (!options) return { ok: true, blob: async () => ({ size: 3, type: "image/png", arrayBuffer: async () => new Uint8Array([0, 0, 0]).buffer }) };
+      requests.push(JSON.parse(options.body));
+      return { ok: true, json: async () => ({ text: "বাংলা ফলাফল" }) };
+    }
+  });
+  for (preference of ["brief", "standard", "detailed", "invalid"]) {
+    await sandbox.analyzeImage({ mode: "ocr", imageUrl: "https://example.test/image.png" });
+  }
+  assert.deepEqual(requests.map(request => request.detail), ["brief", "standard", "detailed", "standard"]);
+});
+
 test("a large local photo is resized and converted before upload", async () => {
   let closed = false;
   const calls = [];
