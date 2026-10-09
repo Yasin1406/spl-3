@@ -34,6 +34,9 @@ temp/
 # Local manual accessibility test page
 /manual-accessibility-test.html
 
+# Local project reports
+/report/
+
 # Database/runtime artifacts
 *.sqlite
 *.sqlite3
