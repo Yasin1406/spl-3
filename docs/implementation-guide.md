@@ -1,8 +1,8 @@
-# Codex Implementation Guide  
+# Implementation Guide
 
-> FR-13 navigation voice update (2026-10-08): implemented the user's revised plan with on-demand recording inside the Alt+Shift+Z navigator, scoped Alt+Shift+V, Gemini/Speechmatics/Sarvam transcription fallback and Gemini fuzzy resolution against the displayed destination list. A validated listed destination is focused directly; no_match leaves navigation open. No arbitrary generated browser actions are allowed. This slice remains PARTIAL pending real microphone/NVDA/provider acceptance; description voice commands remain deferred. See `docs/voice-navigation.md` and `IMPLEMENTATION_STATUS.md`.
+> FR-13 navigation voice update (2026-10-08): implemented the user's revised plan with on-demand recording inside the Alt+Shift+Z navigator, scoped Alt+Shift+V, Gemini/Speechmatics/Sarvam transcription fallback and Gemini fuzzy resolution against the displayed destination list. A validated listed destination is focused directly; no_match leaves navigation open. No arbitrary generated browser actions are allowed. This slice remains PARTIAL pending real microphone/NVDA/provider acceptance; description voice commands remain deferred. See `docs/voice-navigation.md` and `docs/implementation-status.md`.
 
-> FR-15/FR-16 implementation update (2026-10-08): the extension now includes default-off, local heuristic noise classification for its guided region navigator. Qualifying promotional regions appear later and remain individually reachable; publisher content is not hidden, deleted or changed. Protected-content checks override scores and propagate through containing inventoried regions. Settings, dynamic reclassification and automated browser/unit verification are implemented. Manual NVDA and representative-site acceptance remain pending; see `IMPLEMENTATION_STATUS.md` and `docs/navigation-acceptance.md` for the exact policy and limitations.
+> FR-15/FR-16 implementation update (2026-10-08): the extension now includes default-off, local heuristic noise classification for its guided region navigator. Qualifying promotional regions appear later and remain individually reachable; publisher content is not hidden, deleted or changed. Protected-content checks override scores and propagate through containing inventoried regions. Settings, dynamic reclassification and automated browser/unit verification are implemented. Manual NVDA and representative-site acceptance remain pending; see `docs/implementation-status.md` and `docs/navigation-acceptance.md` for the exact policy and limitations.
 ## AI-Driven Bangla Web Accessibility Assistant for Visually Impaired Users
 
 > **Purpose of this file:** This document is the implementation brief for Codex inside VS Code.  
@@ -173,7 +173,7 @@ Before implementing features, Codex must inspect the repository.
 4. Run existing lint, tests and build commands.
 5. Record what already works.
 6. Create or update:
-   - `IMPLEMENTATION_STATUS.md`
+   - `docs/implementation-status.md`
    - `docs/implementation-plan.md`
 7. Do not delete existing code merely because it differs from this document.
 8. Refactor only after explaining the reason in the implementation plan.
@@ -948,11 +948,12 @@ project-root/
 │   ├── tests/
 │   └── prisma/ or migrations/
 ├── docs/
+│   ├── implementation-guide.md
+│   ├── implementation-status.md
 │   ├── implementation-plan.md
 │   ├── architecture.md
 │   ├── accessibility-testing.md
 │   └── api.md
-├── IMPLEMENTATION_STATUS.md
 ├── README.md
 ├── .env.example
 └── package.json or workspace configuration
@@ -1609,7 +1610,7 @@ A feature is complete only when:
 - sensitive context is not logged;
 - failure has a safe fallback;
 - changes are reversible where applicable;
-- documentation and `IMPLEMENTATION_STATUS.md` are updated.
+- documentation and `docs/implementation-status.md` are updated.
 
 ---
 
@@ -1642,7 +1643,7 @@ Codex must follow these rules during implementation.
 
 ## 22. Required Progress Reporting
 
-After each implementation session, update `IMPLEMENTATION_STATUS.md` using this format:
+After each implementation session, update `docs/implementation-status.md` using this format:
 
 ```markdown
 ## Date
@@ -1685,7 +1686,7 @@ Audit this repository against CODEX_IMPLEMENTATION_README.md.
 3. Determine which requirements are already implemented, partially implemented or missing.
 4. Run the existing install, lint, test and build commands where available.
 5. Do not implement features yet unless a small fix is required to make the repository inspectable.
-6. Create IMPLEMENTATION_STATUS.md.
+6. Create docs/implementation-status.md.
 7. Create docs/implementation-plan.md with phased tasks mapped to the existing codebase.
 8. Report blockers, missing environment variables and architectural conflicts.
 ```

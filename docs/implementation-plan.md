@@ -40,7 +40,7 @@
 - Browser/unit checks cover scoring/protection precedence, all required critical categories, current focus, dynamic warnings, selection retention, translated originals, unresolved references, limits, publisher DOM preservation and low-priority reachability. Extension check, all 30 tests and build pass; Chrome tests require approved execution outside the current sandbox.
 - FR-15/FR-16 remain `PARTIAL` pending the new manual noise checks in `docs/navigation-acceptance.md` and representative-site/NVDA evaluation. This dated entry supersedes the older Phase 8 statement that noise handling is absent. Voice and unrelated dynamic-announcement work remain outside this change.
 
-This plan maps `CODEX_IMPLEMENTATION_README_UPDATED.md` onto the audited repository. The goal is a narrow, testable end-to-end prototype. Existing working translation code will be preserved until its replacement is verified.
+This plan maps `docs/implementation-guide.md` onto the audited repository. The goal is a narrow, testable end-to-end prototype. Existing working translation code will be preserved until its replacement is verified.
 
 ## 2026-10-08 generic shortcut conflict handling
 
@@ -105,7 +105,7 @@ This plan maps `CODEX_IMPLEMENTATION_README_UPDATED.md` onto the audited reposit
 
 ## 2026-10-06 audit correction
 
-The source-based audit in `IMPLEMENTATION_STATUS.md` supersedes stale completion claims below. No runtime implementation was changed during this audit.
+The source-based audit in `docs/implementation-status.md` supersedes stale completion claims below. No runtime implementation was changed during this audit.
 
 | Phase | Current status | Correction / next work |
 |---|---|---|
@@ -374,4 +374,4 @@ Every phase should run, at minimum:
 5. NVDA manual checks for user-facing semantics and announcements when those surfaces change.
 6. Backend schema/safety tests once backend code exists.
 
-The exact commands and results must be appended to `IMPLEMENTATION_STATUS.md` after each implementation session.
+The exact commands and results must be appended to `docs/implementation-status.md` after each implementation session.
